@@ -1,0 +1,35 @@
+{
+  "name": "metro-timetables",
+  "author": "Jacob Latonis",
+  "contributors": [
+    "Julia Paluch",
+    "Jacob Latonis"
+  ],
+  "version": "1.0.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "metro-timetables",
+    "uuid": "866d374a-4bcf-4846-9b1e-f8f38f7c4a87",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "messageKeys": [
+      "dummy"
+    ],
+    "resources": {
+      "media": []
+    }
+  }
+}

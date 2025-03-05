@@ -26,7 +26,9 @@
       "watchface": false
     },
     "messageKeys": [
-      "JSReady"
+      "JSReady",
+      "FavoriteStationsLen",
+      "FavoriteStations"
     ],
     "resources": {
       "media": []

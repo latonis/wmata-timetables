@@ -2,14 +2,18 @@
 
 #define STATION_TEXT_GAP 14
 
+/* Display artifacts */
 static Window *s_window;
 static TextLayer *s_text_layer;
 static MenuLayer *s_menu_layer;
+/* ===== */
+
+/* Data to and from watch */
 static bool s_js_ready;
 static char station_text[32];
-
 static uint32_t favorite_stations_len;
 static char **favorite_stations;
+/* ===== */
 
 #ifdef PBL_ROUND
 static int16_t get_cell_height_callback(MenuLayer *menu_layer,
@@ -37,8 +41,8 @@ static void draw_row_handler(GContext *ctx, const Layer *cell_layer,
   char *name = favorite_stations[cell_index->row];
   int text_gap_size = STATION_TEXT_GAP - strlen(name);
 
-  // Using simple space padding between name and station_text for appearance of
-  // edge-alignment
+  // Using simple space padding between name and station_text for appearance
+  // of edge-alignment
   snprintf(station_text, sizeof(station_text), "%s",
            PBL_IF_ROUND_ELSE("", name));
   menu_cell_basic_draw(ctx, cell_layer, PBL_IF_ROUND_ELSE(name, station_text),
@@ -113,6 +117,7 @@ static void load_window() {
   window_stack_push(s_window, animated);
 }
 
+/* Helpers */
 void process_tuple(Tuple *t) {
   uint32_t key = t->key;
 
@@ -142,13 +147,15 @@ void process_tuple(Tuple *t) {
   }
 
   if (key == (MESSAGE_KEY_FavoriteStations + (int)favorite_stations_len) - 1) {
-      // invalidate the layer so it redraws
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "Invalidating menu layer");
-      layer_mark_dirty(menu_layer_get_layer(s_menu_layer));
+    // invalidate the layer so it redraws
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Invalidating menu layer");
+    layer_mark_dirty(menu_layer_get_layer(s_menu_layer));
   }
   return;
 }
+/* ===== */
 
+/* Message Handlers */
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *t = dict_read_first(iter);
 
@@ -158,9 +165,27 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   }
 }
 
+static void inbox_dropped_handler(AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped. Reason: %d", (int)reason);
+}
+
+static void outbox_sent_handler(DictionaryIterator *iter, void *context) {
+  APP_LOG(APP_LOG_LEVEL_INFO, "Message sent successfully.");
+}
+
+static void outbox_failed_handler(DictionaryIterator *iter,
+                                  AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message send failed. Reason: %d", (int)reason);
+}
+/* ===== */
+
 static void prv_init(void) {
   load_window();
+
   app_message_register_inbox_received(inbox_received_handler);
+  app_message_register_inbox_dropped(inbox_dropped_handler);
+  app_message_register_outbox_sent(outbox_sent_handler);
+  app_message_register_outbox_failed(outbox_failed_handler);
   app_message_open(app_message_inbox_size_maximum(),
                    app_message_outbox_size_maximum());
 }

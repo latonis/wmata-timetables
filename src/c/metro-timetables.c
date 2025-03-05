@@ -5,11 +5,11 @@
 static Window *s_window;
 static TextLayer *s_text_layer;
 static MenuLayer *s_menu_layer;
-
+static bool s_js_ready;
 static char station_text[32];
 
 #ifdef PBL_ROUND
-static int16_t get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *cell_index, 
+static int16_t get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *cell_index,
                                         void *callback_context) {
   return 60;
 }
@@ -29,18 +29,18 @@ Station station_array[] = {
   {"Metro Center"},
 };
 
-static void draw_row_handler(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, 
+static void draw_row_handler(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index,
                              void *callback_context) {
   char* name = station_array[cell_index->row].name;
   int text_gap_size = STATION_TEXT_GAP - strlen(name);
 
   // Using simple space padding between name and station_text for appearance of edge-alignment
   snprintf(station_text, sizeof(station_text), "%s", PBL_IF_ROUND_ELSE("", name));
-  menu_cell_basic_draw(ctx, cell_layer, PBL_IF_ROUND_ELSE(name, station_text), 
+  menu_cell_basic_draw(ctx, cell_layer, PBL_IF_ROUND_ELSE(name, station_text),
                        PBL_IF_ROUND_ELSE(station_text, NULL), NULL);
 }
 
-static uint16_t get_sections_count_callback(struct MenuLayer *menulayer, uint16_t section_index, 
+static uint16_t get_sections_count_callback(struct MenuLayer *menulayer, uint16_t section_index,
                                             void *callback_context) {
   int count = sizeof(station_array) / sizeof(Station);
   return count;
@@ -79,20 +79,30 @@ static void prv_window_load(Window *window) {
   text_layer_set_text(s_text_layer, "Timetables");
   text_layer_set_text_alignment(s_text_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_text_layer));
-  
+
   s_menu_layer = menu_layer_create(bounds);
   menu_layer_set_callbacks(s_menu_layer, NULL, (MenuLayerCallbacks){
     .get_num_rows = get_sections_count_callback,
     .get_cell_height = PBL_IF_ROUND_ELSE(get_cell_height_callback, NULL),
     .draw_row = draw_row_handler,
     .select_click = NULL
-  }); 
+  });
   menu_layer_set_click_config_onto_window(s_menu_layer,	window);
   layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
 }
 
 static void prv_window_unload(Window *window) {
   text_layer_destroy(s_text_layer);
+}
+
+static void inbox_received_handler(DictionaryIterator *iter, void *context) {
+    Tuple *ready_tuple = dict_find(iter, MESSAGE_KEY_JSReady);
+
+    if (ready_tuple) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "WOO GOT READY: %d",
+            100);
+        s_js_ready = true;
+    }
 }
 
 static void prv_init(void) {
@@ -104,6 +114,8 @@ static void prv_init(void) {
                                        });
   const bool animated = true;
   window_stack_push(s_window, animated);
+  app_message_register_inbox_received(inbox_received_handler);
+  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 }
 
 static void prv_deinit(void) { window_destroy(s_window); }

@@ -1,7 +1,7 @@
-Pebble.addEventListener("ready", function (e) {
-  console.log("Hello world! - Sent from your javascript application.");
-  getRailTime("E10");
-  nextTrain("E10");
+Pebble.addEventListener("ready", function () {
+  console.log("PebbleKit JS ready!");
+
+  Pebble.sendAppMessage({ JSReady: 1 });
 });
 
 const api_key = "";

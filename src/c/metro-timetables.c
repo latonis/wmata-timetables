@@ -23,6 +23,26 @@ static int16_t get_cell_height_callback(MenuLayer* menu_layer, MenuIndex* cell_i
 }
 #endif
 
+/* ======================= Button Handlers ================================= */
+static void station_window_load(Window* window) {
+  Layer* window_layer = window_get_root_layer(window);
+  GRect bounds = layer_get_bounds(window_layer);
+
+  s_text_layer = text_layer_create(GRect(0, 50, bounds.size.w, 20));
+  text_layer_set_text(s_text_layer, "Next train:");
+  text_layer_set_text_alignment(s_text_layer, GTextAlignmentCenter);
+  layer_add_child(window_layer, text_layer_get_layer(s_text_layer));
+}
+
+static void station_window_unload(Window* window) { window_stack_pop(true); }
+
+void select_callback(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "In select callback");
+  station_window_load(s_window);
+}
+
+/* ======================================================================== */
+
 static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* cell_index, void* callback_context) {
   char* name = favorite_stations[cell_index->row];
   int text_gap_size = STATION_TEXT_GAP - strlen(name);
@@ -80,7 +100,7 @@ static void prv_window_load(Window* window) {
       (MenuLayerCallbacks){.get_num_rows = get_sections_count_callback,
                            .get_cell_height = PBL_IF_ROUND_ELSE(get_cell_height_callback, NULL),
                            .draw_row = draw_row_handler,
-                           .select_click = NULL}
+                           .select_click = select_callback}
   );
   menu_layer_set_click_config_onto_window(s_menu_layer, window);
   layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));

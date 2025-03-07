@@ -1,3 +1,4 @@
+#include "message_keys.auto.h"
 #include <pebble.h>
 
 #define STATION_TEXT_GAP 14
@@ -124,9 +125,8 @@ void test_send() {
   AppMessageResult result = app_message_outbox_begin(&out_iter);
 
   if (result == APP_MSG_OK) {
-    int value = 0;
-    dict_write_int(out_iter, MESSAGE_KEY_StationsRequest, &value, sizeof(int),
-                   true);
+    char* value = "E10";
+    dict_write_cstring(out_iter, MESSAGE_KEY_TrainRequest, value);
     result = app_message_outbox_send();
 
     if (result != APP_MSG_OK) {

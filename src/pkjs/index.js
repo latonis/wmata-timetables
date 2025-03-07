@@ -4,6 +4,7 @@ localStorage.setItem(
 );
 
 var keys = require("message_keys");
+
 function sendNextItem(items, index) {
   // Build message
   var key = keys.FavoriteStations + index;
@@ -37,7 +38,6 @@ function sendList(items) {
 
 Pebble.addEventListener("ready", function () {
   console.log("PebbleKit JS ready!");
-
   Pebble.sendAppMessage({ JSReady: 1 });
   const favoriteStations = JSON.parse(
     localStorage.getItem("favorite_stations")
@@ -46,14 +46,15 @@ Pebble.addEventListener("ready", function () {
   sendList(favoriteStations);
 });
 
-Pebble.addEventListener('appmessage', function (e) {
+Pebble.addEventListener("appmessage", function (e) {
   var dict = e.payload;
 
-  console.log('Got message: ' + JSON.stringify(dict));
+  console.log("Got message: " + JSON.stringify(dict));
 
-  if (dict["StationsRequest"]) {
+  if (dict["TrainRequest"]) {
+    console.log("TrainRequest: " + dict["TrainRequest"]);
+    nextTrain(dict["TrainRequest"]);
   }
-
 });
 
 const api_key = "";

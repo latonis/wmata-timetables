@@ -29,7 +29,7 @@
       "JSReady",
       "FavoriteStationsLen",
       "FavoriteStations",
-      "StationsRequest"
+      "TrainRequest"
     ],
     "resources": {
       "media": []

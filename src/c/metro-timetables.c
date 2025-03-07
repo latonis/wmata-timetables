@@ -24,19 +24,6 @@ static int16_t get_cell_height_callback(MenuLayer *menu_layer,
 }
 #endif
 
-typedef struct {
-  char name[32]; // Name of this station
-} Station;
-
-// Array of different stations
-// {<Station Name>, <Lines OR'd together>}
-Station station_array[] = {
-    {"Dupont"},
-    {"Court House"},
-    {"Rosslyn"},
-    {"Metro Center"},
-};
-
 static void draw_row_handler(GContext *ctx, const Layer *cell_layer,
                              MenuIndex *cell_index, void *callback_context) {
   char *name = favorite_stations[cell_index->row];

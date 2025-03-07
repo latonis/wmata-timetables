@@ -7,18 +7,23 @@ Hello :) This is a hackathon project for the [rebble hackathon #002](https://reb
 
 ## Building the application
 
-```
+```bash
 rebble build
 ```
 
 ## Emulating the application
 
-```
+```bash
 rebble install --emulator aplite
 ```
 
 ## Viewing logs
 
-```
+```bash
 rebble logs
+```
+
+## Ensure JS works build command
+```bash
+rebble wipe && rebble clean && rebble build && rebble install --emulator aplite --logs
 ```

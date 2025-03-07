@@ -28,7 +28,8 @@
     "messageKeys": [
       "JSReady",
       "FavoriteStationsLen",
-      "FavoriteStations"
+      "FavoriteStations",
+      "TrainRequest"
     ],
     "resources": {
       "media": []

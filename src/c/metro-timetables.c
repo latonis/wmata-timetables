@@ -118,6 +118,26 @@ static void load_window() {
 }
 
 /* Helpers */
+void test_send() {
+  DictionaryIterator *out_iter;
+
+  AppMessageResult result = app_message_outbox_begin(&out_iter);
+
+  if (result == APP_MSG_OK) {
+    int value = 0;
+    dict_write_int(out_iter, MESSAGE_KEY_StationsRequest, &value, sizeof(int),
+                   true);
+    result = app_message_outbox_send();
+
+    if (result != APP_MSG_OK) {
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
+    }
+  } else {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d",
+            (int)result);
+  }
+}
+
 void process_tuple(Tuple *t) {
   uint32_t key = t->key;
 
@@ -126,6 +146,7 @@ void process_tuple(Tuple *t) {
   if (key == MESSAGE_KEY_JSReady) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "WOO GOT READY: %d", 100);
     s_js_ready = true;
+    test_send();
   } else if (key == MESSAGE_KEY_FavoriteStationsLen) {
     favorite_stations_len = value;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received %d stations",
@@ -197,7 +218,6 @@ int main(void) {
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p",
           s_window);
-
   app_event_loop();
   prv_deinit();
 }

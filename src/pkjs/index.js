@@ -46,6 +46,16 @@ Pebble.addEventListener("ready", function () {
   sendList(favoriteStations);
 });
 
+Pebble.addEventListener('appmessage', function (e) {
+  var dict = e.payload;
+
+  console.log('Got message: ' + JSON.stringify(dict));
+
+  if (dict["StationsRequest"]) {
+  }
+
+});
+
 const api_key = "";
 
 function getRailLines() {

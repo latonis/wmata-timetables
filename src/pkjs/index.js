@@ -5,11 +5,11 @@ localStorage.setItem(
 
 var keys = require("message_keys");
 
-function sendNextItem(items, index) {
+function sendNextItem(items, index, key) {
   // Build message
-  var key = keys.FavoriteStations + index;
+  var temp_key = key + index;
   var dict = {};
-  dict[key] = items[index];
+  dict[temp_key] = items[index];
 
   // Send the message
   Pebble.sendAppMessage(
@@ -20,30 +20,38 @@ function sendNextItem(items, index) {
 
       if (index < items.length) {
         // Send next item
-        sendNextItem(items, index);
+        sendNextItem(items, index, key);
       } else {
         console.log("Last item sent!");
       }
     },
     function () {
       console.log("Item transmission failed at index: " + index);
-    }
+    },
   );
 }
 
-function sendList(items) {
+function sendList(items, key) {
   var index = 0;
-  sendNextItem(items, index, keys.FavoriteStations);
+  console.log(key);
+  sendNextItem(items, index, keys[key]);
 }
 
 Pebble.addEventListener("ready", function () {
   console.log("PebbleKit JS ready!");
   Pebble.sendAppMessage({ JSReady: 1 });
+
+  // let stations = getRailStations();
+
+  // Pebble.sendAppMessage({StationsLen: stations.length})
+  // sendList(stations, "Stations");
+
   const favoriteStations = JSON.parse(
-    localStorage.getItem("favorite_stations")
+    localStorage.getItem("favorite_stations"),
   );
+
   Pebble.sendAppMessage({ FavoriteStationsLen: favoriteStations.length });
-  sendList(favoriteStations);
+  sendList(favoriteStations, "FavoriteStations");
 });
 
 Pebble.addEventListener("appmessage", function (e) {
@@ -81,7 +89,13 @@ function getRailStations() {
 
   request.onload = function () {
     console.log("Response: ");
-    console.log(this.responseText);
+    let stations = JSON.parse(this.responseText);
+    stations = stations.Stations.map((station) => {
+      return [station.Code, station.Name];
+    });
+
+    localStorage.setItem("stations", JSON.stringify(stations));
+    return stations;
   };
 
   request.open(method, url);
@@ -111,10 +125,42 @@ function nextTrain(station) {
   var request = new XMLHttpRequest();
   request.onload = function () {
     console.log("Response: ");
+    let r = JSON.parse(this.responseText);
     console.log(this.responseText);
+    let trainResponse = [];
+    let length = 0;
+    for (let i = 0; i < r.Trains.length && length < 50; i++) {
+      let train = r.Trains[i];
+
+      if (train.Min === "ARR") {
+        train.Min = "Arriving";
+      } else if (train.Min === "BRD") {
+        train.Min = "Boarding";
+      } else if (train.Min === "1") {
+        train.Min = "1min";
+      } else {
+        train.Min = train.Min + "mins";
+      }
+
+      let trainString =
+        train.Line + " " + train.DestinationName + " " + train.Min;
+      trainResponse.push(trainString);
+      length += trainString.length;
+    }
+    console.log(trainResponse);
+    let bytes = stringToBytes(trainResponse.join("\n"));
+    Pebble.sendAppMessage({ TrainResponse: [...bytes, 0] });
   };
 
   request.open(method, url);
   request.setRequestHeader("api_key", api_key);
   request.send();
+}
+
+function stringToBytes(val) {
+  const result = [];
+  for (let i = 0; i < val.length; i++) {
+    result.push(val.charCodeAt(i));
+  }
+  return result;
 }

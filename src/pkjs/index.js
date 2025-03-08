@@ -27,7 +27,7 @@ function sendNextItem(items, index, key) {
     },
     function () {
       console.log("Item transmission failed at index: " + index);
-    },
+    }
   );
 }
 
@@ -47,7 +47,7 @@ Pebble.addEventListener("ready", function () {
   // sendList(stations, "Stations");
 
   const favoriteStations = JSON.parse(
-    localStorage.getItem("favorite_stations"),
+    localStorage.getItem("favorite_stations")
   );
 
   Pebble.sendAppMessage({ FavoriteStationsLen: favoriteStations.length });

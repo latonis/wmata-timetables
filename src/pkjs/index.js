@@ -5,11 +5,11 @@ localStorage.setItem(
 
 var keys = require("message_keys");
 
-function sendNextItem(items, index) {
+function sendNextItem(items, index, key) {
   // Build message
-  var key = keys.FavoriteStations + index;
+  var temp_key = key + index;
   var dict = {};
-  dict[key] = items[index];
+  dict[temp_key] = items[index];
 
   // Send the message
   Pebble.sendAppMessage(
@@ -20,7 +20,7 @@ function sendNextItem(items, index) {
 
       if (index < items.length) {
         // Send next item
-        sendNextItem(items, index);
+        sendNextItem(items, index, key);
       } else {
         console.log("Last item sent!");
       }
@@ -31,19 +31,28 @@ function sendNextItem(items, index) {
   );
 }
 
-function sendList(items) {
+function sendList(items, key) {
   var index = 0;
-  sendNextItem(items, index, keys.FavoriteStations);
+  console.log(key)
+  sendNextItem(items, index, keys[key]);
 }
 
 Pebble.addEventListener("ready", function () {
   console.log("PebbleKit JS ready!");
   Pebble.sendAppMessage({ JSReady: 1 });
+
+  // let stations = getRailStations();
+
+  // Pebble.sendAppMessage({StationsLen: stations.length})
+  // sendList(stations, "Stations");
+
   const favoriteStations = JSON.parse(
     localStorage.getItem("favorite_stations")
   );
+
   Pebble.sendAppMessage({ FavoriteStationsLen: favoriteStations.length });
-  sendList(favoriteStations);
+  sendList(favoriteStations, "FavoriteStations");
+
 });
 
 Pebble.addEventListener("appmessage", function (e) {
@@ -74,14 +83,20 @@ function getRailLines() {
   request.send();
 }
 
-function getRailStations() {
+function getRailStations()  {
   var method = "GET";
   var url = "https://api.wmata.com/Rail.svc/json/jStations";
   var request = new XMLHttpRequest();
 
   request.onload = function () {
     console.log("Response: ");
-    console.log(this.responseText);
+    let stations = JSON.parse(this.responseText);
+    stations = stations.Stations.map((station) => {
+      return [station.Code, station.Name];
+    });
+
+    localStorage.setItem("stations", JSON.stringify(stations));
+    return stations;
   };
 
   request.open(method, url);

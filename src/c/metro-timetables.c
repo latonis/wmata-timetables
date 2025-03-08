@@ -1,5 +1,6 @@
 #include "message_keys.auto.h"
 #include <pebble.h>
+#include <stdint.h>
 
 #define STATION_TEXT_GAP 14
 
@@ -112,7 +113,7 @@ void test_send() {
   AppMessageResult result = app_message_outbox_begin(&out_iter);
 
   if (result == APP_MSG_OK) {
-    char* value = "E10";
+    char *value = "A03";
     dict_write_cstring(out_iter, MESSAGE_KEY_TrainRequest, value);
     result = app_message_outbox_send();
 
@@ -150,6 +151,9 @@ void process_tuple(Tuple *t) {
            t->value->cstring);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key,
             favorite_stations[key - MESSAGE_KEY_FavoriteStations]);
+  } else if (key == MESSAGE_KEY_TrainResponse) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received train response: %s",
+            t->value->data);
   } else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Key %d not recognized!", (int)key);
   }
@@ -198,7 +202,15 @@ static void prv_init(void) {
                    app_message_outbox_size_maximum());
 }
 
-static void prv_deinit(void) { window_destroy(s_window); }
+static void prv_deinit(void) {
+  window_destroy(s_window);
+  menu_layer_destroy(s_menu_layer);
+
+  for (uint32_t i = 0; i < favorite_stations_len; i++) {
+    free(favorite_stations[i]);
+  }
+  free(favorite_stations);
+}
 
 int main(void) {
   prv_init();

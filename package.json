@@ -30,6 +30,7 @@
       "Stations",
       "StationsLen",
       "TrainRequest",
+      "TrainResponse",
       "FavoriteStationsLen",
       "FavoriteStations"
     ],

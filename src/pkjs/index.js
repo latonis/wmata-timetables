@@ -50,7 +50,7 @@ Pebble.addEventListener("ready", function () {
     localStorage.getItem("favorite_stations")
   );
 
-  Pebble.sendAppMessage({ FavoriteStationsLen: favoriteStations.length });
+  Pebble.sendAppMessage({ "FavoriteStationsLen": favoriteStations.length });
   sendList(favoriteStations, "FavoriteStations");
 
 });
@@ -126,10 +126,41 @@ function nextTrain(station) {
   var request = new XMLHttpRequest();
   request.onload = function () {
     console.log("Response: ");
-    console.log(this.responseText);
+    let r = JSON.parse(this.responseText);
+    console.log(this.responseText)
+    let trainResponse = [];
+    let length = 0;
+    for (let i = 0; i < r.Trains.length && length < 50; i++) {
+      let train = r.Trains[i];
+
+      if (train.Min === "ARR") {
+        train.Min = "Arriving";
+      } else if (train.Min === "BRD") {
+        train.Min = "Boarding";
+      } else if (train.Min === "1") {
+        train.Min = "1min";
+      } else {
+        train.Min = train.Min + "mins";
+      }
+
+      let trainString = train.Line + " " + train.DestinationName + " " + train.Min;
+      trainResponse.push(trainString);
+      length += trainString.length;
+    }
+    console.log(trainResponse);
+    let bytes = stringToBytes(trainResponse.join("\n"));
+    Pebble.sendAppMessage({ TrainResponse: [...bytes, 0] });
   };
 
   request.open(method, url);
   request.setRequestHeader("api_key", api_key);
   request.send();
+}
+
+function stringToBytes(val) {
+    const result = [];
+    for (let i = 0; i < val.length; i++) {
+        result.push(val.charCodeAt(i));
+    }
+    return result;
 }

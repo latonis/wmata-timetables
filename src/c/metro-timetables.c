@@ -5,9 +5,14 @@
 #define STATION_TEXT_GAP 14
 
 /* Display artifacts */
-static Window* s_window;
+static Window* station_window;
+static Window* trains_window;
 static TextLayer* s_text_layer;
 static MenuLayer* s_menu_layer;
+static ScrollLayer* s_scroll_layer;
+static TextLayer* s_text_scroll_layer;
+
+static char scroll_text[] = "RD Glenmont 3mins\nRD Shady Grove 5mins\nRD Glenmont 9mins";
 /* ===== */
 
 /* Data to and from watch */
@@ -23,22 +28,62 @@ static int16_t get_cell_height_callback(MenuLayer* menu_layer, MenuIndex* cell_i
 }
 #endif
 
-/* ======================= Button Handlers ================================= */
-static void station_window_load(Window* window) {
-  Layer* window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_bounds(window_layer);
-
-  s_text_layer = text_layer_create(GRect(0, 50, bounds.size.w, 20));
-  text_layer_set_text(s_text_layer, "Next train:");
-  text_layer_set_text_alignment(s_text_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(s_text_layer));
+static void prv_select_click_handler(ClickRecognizerRef recognizer, void* context) {
+  text_layer_set_text(s_text_layer, "Select");
 }
 
-static void station_window_unload(Window* window) { window_stack_pop(true); }
+static void prv_up_click_handler(ClickRecognizerRef recognizer, void* context) {
+  text_layer_set_text(s_text_layer, "Up");
+}
+
+static void prv_down_click_handler(ClickRecognizerRef recognizer, void* context) {
+  text_layer_set_text(s_text_layer, "Down");
+}
+
+static void prv_click_config_provider(void* context) {
+  window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
+  window_single_click_subscribe(BUTTON_ID_UP, prv_up_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click_handler);
+}
+
+/* ======================= Button Handlers ================================= */
+static void trains_window_load() {
+  Layer* window_layer = window_get_root_layer(trains_window);
+  GRect bounds = layer_get_bounds(window_layer);
+  GRect max_text_bounds = GRect(0, 0, bounds.size.w, 2000);
+
+  s_scroll_layer = scroll_layer_create(bounds);
+  scroll_layer_set_click_config_onto_window(s_scroll_layer, trains_window);
+
+  // Initialize the text layer
+  s_text_layer = text_layer_create(max_text_bounds);
+  text_layer_set_text(s_text_layer, scroll_text);
+  scroll_layer_add_child(s_scroll_layer, text_layer_get_layer(s_text_layer));
+  layer_add_child(window_layer, scroll_layer_get_layer(s_scroll_layer));
+}
+
+static void trains_window_unload(Window* window) {
+  text_layer_destroy(s_text_layer);
+  scroll_layer_destroy(s_scroll_layer);
+}
+
+static void trains_window_init() {
+  trains_window = window_create();
+  window_set_click_config_provider(trains_window, prv_click_config_provider);
+  window_set_window_handlers(
+      trains_window,
+      (WindowHandlers){
+          .load = trains_window_load,
+          .unload = trains_window_unload,
+      }
+  );
+  const bool animated = true;
+  window_stack_push(trains_window, animated);
+}
 
 void select_callback(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "In select callback");
-  station_window_load(s_window);
+  trains_window_init();
 }
 
 /* ======================================================================== */
@@ -60,24 +105,6 @@ static uint16_t get_sections_count_callback(
 ) {
   int count = favorite_stations_len;
   return count;
-}
-
-static void prv_select_click_handler(ClickRecognizerRef recognizer, void* context) {
-  text_layer_set_text(s_text_layer, "Select");
-}
-
-static void prv_up_click_handler(ClickRecognizerRef recognizer, void* context) {
-  text_layer_set_text(s_text_layer, "Up");
-}
-
-static void prv_down_click_handler(ClickRecognizerRef recognizer, void* context) {
-  text_layer_set_text(s_text_layer, "Down");
-}
-
-static void prv_click_config_provider(void* context) {
-  window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
-  window_single_click_subscribe(BUTTON_ID_UP, prv_up_click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click_handler);
 }
 
 static void prv_window_load(Window* window) {
@@ -108,18 +135,18 @@ static void prv_window_load(Window* window) {
 
 static void prv_window_unload(Window* window) { text_layer_destroy(s_text_layer); }
 
-static void load_window() {
-  s_window = window_create();
-  window_set_click_config_provider(s_window, prv_click_config_provider);
+static void load_station_window() {
+  station_window = window_create();
+  window_set_click_config_provider(station_window, prv_click_config_provider);
   window_set_window_handlers(
-      s_window,
+      station_window,
       (WindowHandlers){
           .load = prv_window_load,
           .unload = prv_window_unload,
       }
   );
   const bool animated = true;
-  window_stack_push(s_window, animated);
+  window_stack_push(station_window, animated);
 }
 
 /* Helpers */
@@ -202,7 +229,7 @@ static void outbox_failed_handler(DictionaryIterator* iter, AppMessageResult rea
 /* ===== */
 
 static void prv_init(void) {
-  load_window();
+  load_station_window();
 
   app_message_register_inbox_received(inbox_received_handler);
   app_message_register_inbox_dropped(inbox_dropped_handler);
@@ -211,12 +238,12 @@ static void prv_init(void) {
   app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 }
 
-static void prv_deinit(void) { window_destroy(s_window); }
+static void prv_deinit(void) { window_destroy(station_window); }
 
 int main(void) {
   prv_init();
 
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", s_window);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", station_window);
   app_event_loop();
   prv_deinit();
 }

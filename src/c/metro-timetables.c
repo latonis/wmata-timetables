@@ -152,8 +152,7 @@ void process_tuple(Tuple *t) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key,
             favorite_stations[key - MESSAGE_KEY_FavoriteStations]);
   } else if (key == MESSAGE_KEY_TrainResponse) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received train response: %s",
-            t->value->data);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received train response: %s", t->value->data);
   } else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Key %d not recognized!", (int)key);
   }

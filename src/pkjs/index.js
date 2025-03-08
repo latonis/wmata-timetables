@@ -27,13 +27,13 @@ function sendNextItem(items, index, key) {
     },
     function () {
       console.log("Item transmission failed at index: " + index);
-    }
+    },
   );
 }
 
 function sendList(items, key) {
   var index = 0;
-  console.log(key)
+  console.log(key);
   sendNextItem(items, index, keys[key]);
 }
 
@@ -47,12 +47,11 @@ Pebble.addEventListener("ready", function () {
   // sendList(stations, "Stations");
 
   const favoriteStations = JSON.parse(
-    localStorage.getItem("favorite_stations")
+    localStorage.getItem("favorite_stations"),
   );
 
-  Pebble.sendAppMessage({ "FavoriteStationsLen": favoriteStations.length });
+  Pebble.sendAppMessage({ FavoriteStationsLen: favoriteStations.length });
   sendList(favoriteStations, "FavoriteStations");
-
 });
 
 Pebble.addEventListener("appmessage", function (e) {
@@ -83,7 +82,7 @@ function getRailLines() {
   request.send();
 }
 
-function getRailStations()  {
+function getRailStations() {
   var method = "GET";
   var url = "https://api.wmata.com/Rail.svc/json/jStations";
   var request = new XMLHttpRequest();
@@ -127,7 +126,7 @@ function nextTrain(station) {
   request.onload = function () {
     console.log("Response: ");
     let r = JSON.parse(this.responseText);
-    console.log(this.responseText)
+    console.log(this.responseText);
     let trainResponse = [];
     let length = 0;
     for (let i = 0; i < r.Trains.length && length < 50; i++) {
@@ -143,7 +142,8 @@ function nextTrain(station) {
         train.Min = train.Min + "mins";
       }
 
-      let trainString = train.Line + " " + train.DestinationName + " " + train.Min;
+      let trainString =
+        train.Line + " " + train.DestinationName + " " + train.Min;
       trainResponse.push(trainString);
       length += trainString.length;
     }
@@ -158,9 +158,9 @@ function nextTrain(station) {
 }
 
 function stringToBytes(val) {
-    const result = [];
-    for (let i = 0; i < val.length; i++) {
-        result.push(val.charCodeAt(i));
-    }
-    return result;
+  const result = [];
+  for (let i = 0; i < val.length; i++) {
+    result.push(val.charCodeAt(i));
+  }
+  return result;
 }

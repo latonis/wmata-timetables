@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include <stdint.h>
 
 #include "message_keys.auto.h"
 
@@ -109,7 +110,7 @@ void test_send() {
   AppMessageResult result = app_message_outbox_begin(&out_iter);
 
   if (result == APP_MSG_OK) {
-    char* value = "E10";
+    char *value = "A03";
     dict_write_cstring(out_iter, MESSAGE_KEY_TrainRequest, value);
     result = app_message_outbox_send();
 
@@ -191,7 +192,15 @@ static void prv_init(void) {
   app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 }
 
-static void prv_deinit(void) { window_destroy(s_window); }
+static void prv_deinit(void) {
+  window_destroy(s_window);
+  menu_layer_destroy(s_menu_layer);
+
+  for (uint32_t i = 0; i < favorite_stations_len; i++) {
+    free(favorite_stations[i]);
+  }
+  free(favorite_stations);
+}
 
 int main(void) {
   prv_init();

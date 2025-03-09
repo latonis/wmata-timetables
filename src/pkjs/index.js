@@ -1,8 +1,3 @@
-localStorage.setItem(
-  "favorite_stations",
-  JSON.stringify(["Dupont Circle", "Foggy Bottom-GWU", "Metro Center"])
-);
-
 var keys = require("message_keys");
 
 function sendNextItem(items, index, key) {
@@ -58,9 +53,13 @@ Pebble.addEventListener("appmessage", function (e) {
   } else if (dict["AddFavorite"]) {
     console.log("AddFavorite" + dict["AddFavorite"])
     let favorite_stations = JSON.parse(localStorage.getItem("favorite_stations"));
+    if (favorite_stations == null) {
+      favorite_stations = [];
+    }
     if (!favorite_stations.includes(dict["AddFavorite"])) {
       favorite_stations.push(dict["AddFavorite"]);
       localStorage.setItem("favorite_stations", JSON.stringify(favorite_stations));
+      console.log(favorite_stations.join("|"))
     }
   } else if (dict["RemoveFavorite"]) {
     console.log("RemoveFavorite" + dict["RemoveFavorite"])

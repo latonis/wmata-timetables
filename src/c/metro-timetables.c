@@ -5,6 +5,7 @@
 #include "message_keys.auto.h"
 
 #define STATION_TEXT_GAP 14
+#define MAX_FAV_STATIONS 5
 
 /* Display artifacts */
 static Window* welcome_window;
@@ -31,7 +32,7 @@ static char station_text[32];
 static size_t stations_len;
 static char** stations;
 static size_t favorite_stations_len = 0;
-static char* favorite_stations[5]   = {NULL};
+static char* favorite_stations[5]   = {NULL, NULL, NULL, NULL, NULL};
 /* ===== */
 
 // #ifdef PBL_ROUND
@@ -114,11 +115,28 @@ static uint16_t get_sections_count_callback(
   return count;
 }
 
+static void populate_favorite_stations(char* from_js) {
+    size_t curStationIdx = 0;
+    size_t charIdx = 0;
+    char curStationStr[64];
+    for (size_t i = 0; i < strlen(from_js); ++i) {
+        if (from_js[i] == '|') {
+            strcpy(favorite_stations[curStationIdx], curStationStr);
+            memset(curStationStr, 0, 64); // clear buffer
+            ++curStationIdx;
+            charIdx = 0;
+            continue;
+        }
+        curStationStr[charIdx] = from_js[i];
+        if (curStationIdx == MAX_FAV_STATIONS) {
+            return;
+        }
+    }
+}
+
 void process_tuple(Tuple* t) {
   uint32_t key = t->key;
-
   int value = t->value->int32;
-
   if (key == MESSAGE_KEY_JSReady) {
     s_js_ready = true;
   }
@@ -136,6 +154,9 @@ void process_tuple(Tuple* t) {
   else if (key == MESSAGE_KEY_TrainResponse) {
     strcpy(train_text, (char*)t->value->data);
     window_stack_push(trains_window, true);
+  }
+  else if (key == MESSAGE_KEY_Favorites) {
+    populate_favorite_stations((char*)t->value->data);
   }
   else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Key %d not recognized!", (int)key);
@@ -182,16 +203,26 @@ static void logo_update_proc(Layer* layer, GContext* ctx) {
 
 static size_t get_len(char** arr) {
   size_t size = 0;
-  while (size < 5 && favorite_stations[size] != NULL) {
+  while (size < 5 && arr[size] != NULL) {
     size++;
   }
   return size;
+}
+
+static void get_favorite_stations() {
+    DictionaryIterator* out_iter;
+    AppMessageResult result = app_message_outbox_begin(&out_iter);
+    if (result == APP_MSG_OK) {
+        dict_write_int(out_iter, MESSAGE_KEY_GetFavorites, 0, sizeof(size_t), 0);
+        result = app_message_outbox_send();
+    }
 }
 
 static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "In set_unset_favorite_station");
   DictionaryIterator* out_iter;
   AppMessageResult result = app_message_outbox_begin(&out_iter);
+  get_favorite_stations();
   favorite_stations_len   = get_len(favorite_stations);
 
   if (result == APP_MSG_OK) {
@@ -200,6 +231,8 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
     char* candidate_station = stations[cell_index->row];
     size_t i                = 0;
     while (i < favorite_stations_len) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "%s == %s", candidate_station, favorite_stations[i]);
+
       if (strcmp(candidate_station, favorite_stations[i])) {
         action = MESSAGE_KEY_RemoveFavorite;
         break;
@@ -213,6 +246,7 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
     if (result != APP_MSG_OK) {
       APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
     }
+    get_favorite_stations();
   }
   else {
     APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);

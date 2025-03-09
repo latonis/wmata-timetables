@@ -33,6 +33,7 @@
       "AddFavorite",
       "RemoveFavorite",
       "Favorites",
+      "GetFavorites",
       "TrainRequest",
       "TrainResponse",
       "StationsLen",

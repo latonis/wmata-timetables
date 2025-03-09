@@ -5,6 +5,7 @@
 #include "message_keys.auto.h"
 
 #define STATION_TEXT_GAP 14
+#define MAX_FAV_STATIONS 5
 
 /* Display artifacts */
 static Window* welcome_window;
@@ -21,15 +22,17 @@ static TextLayer* trains_title_layer;
 static char train_text[64];
 static char current_station[64];
 
-static GBitmap *s_bitmap;
+static GBitmap* s_bitmap;
 
 /* ===== */
 
 /* Data to and from watch */
 static bool s_js_ready;
 static char station_text[32];
-static uint32_t stations_len;
+static size_t stations_len;
 static char** stations;
+static size_t favorite_stations_len = 0;
+static char* favorite_stations[5]   = {NULL, NULL, NULL, NULL, NULL};
 /* ===== */
 
 // #ifdef PBL_ROUND
@@ -51,7 +54,7 @@ static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, 
     result = app_message_outbox_send();
 
     if (result != APP_MSG_OK) {
-      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox in get_train_data: %d", (int)result);
     }
   }
   else {
@@ -60,10 +63,10 @@ static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, 
 }
 
 static void trains_window_load() {
-  Layer* window_layer   = window_get_root_layer(trains_window);
-  GRect bounds          = layer_get_bounds(window_layer);
-  GRect title_bounds    = GRect(0, 0, bounds.size.w, bounds.size.h/8) ;
-  GRect text_bounds     = GRect(0, bounds.size.h/5, bounds.size.w, bounds.size.h);
+  Layer* window_layer = window_get_root_layer(trains_window);
+  GRect bounds        = layer_get_bounds(window_layer);
+  GRect title_bounds  = GRect(0, 0, bounds.size.w, bounds.size.h / 8);
+  GRect text_bounds   = GRect(0, bounds.size.h / 5, bounds.size.w, bounds.size.h);
 
   trains_title_layer = text_layer_create(title_bounds);
   text_layer_set_text(trains_title_layer, current_station);
@@ -112,11 +115,28 @@ static uint16_t get_sections_count_callback(
   return count;
 }
 
+static void populate_favorite_stations(char* from_js) {
+    size_t curStationIdx = 0;
+    size_t charIdx = 0;
+    char curStationStr[64];
+    for (size_t i = 0; i < strlen(from_js); ++i) {
+        if (from_js[i] == '|') {
+            strcpy(favorite_stations[curStationIdx], curStationStr);
+            memset(curStationStr, 0, 64); // clear buffer
+            ++curStationIdx;
+            charIdx = 0;
+            continue;
+        }
+        curStationStr[charIdx] = from_js[i];
+        if (curStationIdx == MAX_FAV_STATIONS) {
+            return;
+        }
+    }
+}
+
 void process_tuple(Tuple* t) {
   uint32_t key = t->key;
-
   int value = t->value->int32;
-
   if (key == MESSAGE_KEY_JSReady) {
     s_js_ready = true;
   }
@@ -129,13 +149,15 @@ void process_tuple(Tuple* t) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received station %d: %s", (int)key, t->value->cstring);
     stations[key - MESSAGE_KEY_Stations] = malloc(strlen(t->value->cstring) + 1);
     strcpy(stations[key - MESSAGE_KEY_Stations], t->value->cstring);
-    APP_LOG(
-        APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key, stations[key - MESSAGE_KEY_Stations]
-    );
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key, stations[key - MESSAGE_KEY_Stations]);
   }
   else if (key == MESSAGE_KEY_TrainResponse) {
     strcpy(train_text, (char*)t->value->data);
     window_stack_push(trains_window, true);
+  }
+  else if (key == MESSAGE_KEY_Favorites) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Populating favorites");
+    populate_favorite_stations((char*)t->value->data);
   }
   else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Key %d not recognized!", (int)key);
@@ -172,12 +194,65 @@ static void outbox_failed_handler(DictionaryIterator* iter, AppMessageResult rea
 }
 /* ===== */
 
-static void logo_update_proc(Layer *layer, GContext *ctx) {
-  GRect bitmap_bounds = gbitmap_get_bounds(s_bitmap);
+static void logo_update_proc(Layer* layer, GContext* ctx) {
+  GRect bitmap_bounds    = gbitmap_get_bounds(s_bitmap);
   bitmap_bounds.origin.x = (layer_get_frame(layer).size.w - bitmap_bounds.size.w) / 2;
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
   graphics_draw_bitmap_in_rect(ctx, s_bitmap, bitmap_bounds);
+}
+
+static size_t get_len(char** arr) {
+  size_t size = 0;
+  while (size < 5 && arr[size] != NULL) {
+    size++;
+  }
+  return size;
+}
+
+static void get_favorite_stations(DictionaryIterator* out_iter) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "In get_favorite_stations");
+    int value = 0;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting favorites...");
+    dict_write_int(out_iter, MESSAGE_KEY_GetFavorites, &value, sizeof(int), 0);
+    AppMessageResult result = app_message_outbox_send();
+    if (result != APP_MSG_OK) {
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox in get_favorite_stations: %d", (int)result);
+    }
+}
+
+static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "In set_unset_favorite_station");
+  DictionaryIterator* out_iter;
+  AppMessageResult result = app_message_outbox_begin(&out_iter);
+  get_favorite_stations(out_iter);
+  favorite_stations_len   = get_len(favorite_stations);
+  if (result == APP_MSG_OK) {
+    uint32_t action = MESSAGE_KEY_AddFavorite;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "There are %zu favorite stations.", favorite_stations_len);
+    char* candidate_station = stations[cell_index->row];
+    size_t i                = 0;
+    while (i < favorite_stations_len) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "%s == %s", candidate_station, favorite_stations[i]);
+
+      if (strcmp(candidate_station, favorite_stations[i])) {
+        action = MESSAGE_KEY_RemoveFavorite;
+        break;
+      }
+      ++i;
+    }
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "There are now %zu favorite stations.", favorite_stations_len);
+    dict_write_cstring(out_iter, action, stations[cell_index->row]);
+    result = app_message_outbox_send();
+
+    if (result != APP_MSG_OK) {
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox in set_unset_favorite_station: %d", (int)result);
+    }
+    get_favorite_stations(out_iter);
+  }
+  else {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
+  }
 }
 
 static void station_window_load() {
@@ -187,10 +262,12 @@ static void station_window_load() {
 
   menu_layer_set_callbacks(
       station_menu_layer, NULL,
-      (MenuLayerCallbacks){.get_num_rows    = get_sections_count_callback,
-                           .get_cell_height = get_cell_height_callback,
-                           .draw_row        = draw_row_handler,
-                           .select_click    = get_train_data}
+      (MenuLayerCallbacks){.get_num_rows      = get_sections_count_callback,
+                           .get_cell_height   = get_cell_height_callback,
+                           .draw_row          = draw_row_handler,
+                           .select_click      = get_train_data
+                           // .select_long_click = set_unset_favorite_station
+      }
   );
   menu_layer_set_click_config_onto_window(station_menu_layer, station_window);
   layer_add_child(window_layer, menu_layer_get_layer(station_menu_layer));
@@ -215,7 +292,8 @@ static void welcome_window_load() {
   Layer* window_layer = window_get_root_layer(welcome_window);
   GRect bounds        = layer_get_bounds(window_layer);
 
-  welcome_text_layer  = text_layer_create(GRect(0, bounds.size.h - (bounds.size.h/4) - 4, bounds.size.w, bounds.size.h/6));
+  welcome_text_layer =
+      text_layer_create(GRect(0, bounds.size.h - (bounds.size.h / 4) - 4, bounds.size.w, bounds.size.h / 6));
   text_layer_set_text(welcome_text_layer, welcome_text);
   text_layer_set_background_color(welcome_text_layer, GColorClear);
   text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);
@@ -226,7 +304,9 @@ static void welcome_window_load() {
 
 static void welcome_window_unload(Window* window) { text_layer_destroy(welcome_text_layer); }
 
-static void welcome_select_click_handler(ClickRecognizerRef recognizer, void* context) { window_stack_push(station_window, true); }
+static void welcome_select_click_handler(ClickRecognizerRef recognizer, void* context) {
+  window_stack_push(station_window, true);
+}
 
 static void welcome_window_config_provider(void* context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, welcome_select_click_handler);
@@ -234,7 +314,6 @@ static void welcome_window_config_provider(void* context) {
 
 static void init_welcome_window() {
   welcome_window = window_create();
-
   window_set_click_config_provider(welcome_window, welcome_window_config_provider);
   window_set_window_handlers(
       welcome_window,
@@ -257,7 +336,6 @@ static void prv_init(void) {
   app_message_register_outbox_sent(outbox_sent_handler);
   app_message_register_outbox_failed(outbox_failed_handler);
   app_message_open(400, 400);
-
 }
 
 static void prv_deinit(void) {

@@ -87,7 +87,6 @@ static void init_trains_window() {
   window_stack_push(trains_window, animated);
 }
 
-
 static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* cell_index, void* callback_context) {
   char* name        = favorite_stations[cell_index->row];
   int text_gap_size = STATION_TEXT_GAP - strlen(name);
@@ -185,21 +184,8 @@ static void station_window_load() {
 
 static void station_window_unload(Window* window) { menu_layer_destroy(station_menu_layer); }
 
-static void prv_select_click_handler(ClickRecognizerRef recognizer, void* context) {}
-
-static void prv_up_click_handler(ClickRecognizerRef recognizer, void* context) {}
-
-static void prv_down_click_handler(ClickRecognizerRef recognizer, void* context) {}
-
-static void station_window_click_config_provider(void* context) {
-  window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
-  window_single_click_subscribe(BUTTON_ID_UP, prv_up_click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click_handler);
-}
-
 static void init_station_window() {
   station_window = window_create();
-  window_set_click_config_provider(station_window, station_window_click_config_provider);
   window_set_window_handlers(
       station_window,
       (WindowHandlers){

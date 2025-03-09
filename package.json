@@ -33,7 +33,14 @@
       "Stations"
     ],
     "resources": {
-      "media": []
+      "media": [
+        {
+          "type": "bitmap",
+          "name": "IMAGE_LOGO",
+          "file": "img/logo_pixel.png",
+          "spaceOptimization": "memory"
+        }
+      ]
     }
   }
 }

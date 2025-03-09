@@ -1,6 +1,6 @@
 localStorage.setItem(
   "favorite_stations",
-  JSON.stringify(["Dupont Circle", "Foggy Bottom", "Metro Center"])
+  JSON.stringify(["Dupont Circle", "Foggy Bottom-GWU", "Metro Center"])
 );
 
 var keys = require("message_keys");
@@ -61,7 +61,7 @@ Pebble.addEventListener("appmessage", function (e) {
 
   if (dict["TrainRequest"]) {
     console.log("TrainRequest: " + dict["TrainRequest"]);
-    nextTrain(dict["TrainRequest"]);
+    nextTrain(getCodeFromName(dict["TrainRequest"]));
   }
 });
 
@@ -129,7 +129,7 @@ function nextTrain(station) {
     console.log(this.responseText);
     let trainResponse = [];
     let length = 0;
-    for (let i = 0; i < r.Trains.length && length < 50; i++) {
+    for (let i = 0; i < r.Trains.length; i++) {
       let train = r.Trains[i];
 
       if (train.Min === "ARR") {
@@ -144,10 +144,19 @@ function nextTrain(station) {
 
       let trainString =
         train.Line + " " + train.DestinationName + " " + train.Min;
-      trainResponse.push(trainString);
-      length += trainString.length;
+
+      if (length + trainString.length > 63) {
+        i = r.Trains.length;
+      } else {
+        trainResponse.push(trainString);
+        length += trainString.length;
+      }
     }
-    console.log(trainResponse);
+
+    if (trainResponse.length === 0) {
+      trainResponse.push("No trains scheduled! :(");
+    }
+
     let bytes = stringToBytes(trainResponse.join("\n"));
     Pebble.sendAppMessage({ TrainResponse: [...bytes, 0] });
   };
@@ -163,4 +172,112 @@ function stringToBytes(val) {
     result.push(val.charCodeAt(i));
   }
   return result;
+}
+
+function getCodeFromName(name) {
+  const stationMap = {
+    "Metro Center": "A01",
+    "Farragut North": "A02",
+    "Dupont Circle": "A03",
+    "Woodley Park-Zoo/Adams Morgan": "A04",
+    "Cleveland Park": "A05",
+    "Van Ness-UDC": "A06",
+    "Tenleytown-AU": "A07",
+    "Friendship Heights": "A08",
+    "Bethesda": "A09",
+    "Medical Center": "A10",
+    "Grosvenor-Strathmore": "A11",
+    "North Bethesda": "A12",
+    "Twinbrook": "A13",
+    "Rockville": "A14",
+    "Shady Grove": "A15",
+    "Gallery Pl-Chinatown": "B01",
+    "Judiciary Square": "B02",
+    "Union Station": "B03",
+    "Rhode Island Ave-Brentwood": "B04",
+    "Brookland-CUA": "B05",
+    "Fort Totten": "B06",
+    "Takoma": "B07",
+    "Silver Spring": "B08",
+    "Forest Glen": "B09",
+    "Wheaton": "B10",
+    "Glenmont": "B11",
+    "NoMa-Gallaudet U": "B35",
+    "McPherson Square": "C02",
+    "Farragut West": "C03",
+    "Foggy Bottom-GWU": "C04",
+    "Rosslyn": "C05",
+    "Arlington Cemetery": "C06",
+    "Pentagon": "C07",
+    "Pentagon City": "C08",
+    "Crystal City": "C09",
+    "Ronald Reagan Washington National Airport": "C10",
+    "Potomac Yard": "C11",
+    "Braddock Road": "C12",
+    "King St-Old Town": "C13",
+    "Eisenhower Avenue": "C14",
+    "Huntington": "C15",
+    "Federal Triangle": "D01",
+    "Smithsonian": "D02",
+    "L'Enfant Plaza": "D03",
+    "Federal Center SW": "D04",
+    "Capitol South": "D05",
+    "Eastern Market": "D06",
+    "Potomac Ave": "D07",
+    "Stadium-Armory": "D08",
+    "Minnesota Ave": "D09",
+    "Deanwood": "D10",
+    "Cheverly": "D11",
+    "Landover": "D12",
+    "New Carrollton": "D13",
+    "Mt Vernon Sq 7th St-Convention Center": "E01",
+    "Shaw-Howard U": "E02",
+    "U Street/African-Amer Civil War Memorial/Cardozo": "E03",
+    "Columbia Heights": "E04",
+    "Georgia Ave-Petworth": "E05",
+    "West Hyattsville": "E07",
+    "Hyattsville Crossing": "E08",
+    "College Park-U of Md": "E09",
+    "Greenbelt": "E10",
+    "Waterfront": "F04",
+    "Navy Yard-Ballpark": "F05",
+    "Anacostia": "F06",
+    "Congress Heights": "F07",
+    "Southern Avenue": "F08",
+    "Naylor Road": "F09",
+    "Suitland": "F10",
+    "Branch Ave": "F11",
+    "Benning Road": "G01",
+    "Capitol Heights": "G02",
+    "Addison Road-Seat Pleasant": "G03",
+    "Morgan Boulevard": "G04",
+    "Downtown Largo": "G05",
+    "Van Dorn Street": "J02",
+    "Franconia-Springfield": "J03",
+    "Court House": "K01",
+    "Clarendon": "K02",
+    "Virginia Square-GMU": "K03",
+    "Ballston-MU": "K04",
+    "East Falls Church": "K05",
+    "West Falls Church": "K06",
+    "Dunn Loring-Merrifield": "K07",
+    "Vienna/Fairfax-GMU": "K08",
+    "McLean": "N01",
+    "Tysons": "N02",
+    "Greensboro": "N03",
+    "Spring Hill": "N04",
+    "Wiehle-Reston East": "N06",
+    "Reston Town Center": "N07",
+    "Herndon": "N08",
+    "Innovation Center": "N09",
+    "Washington Dulles International Airport": "N10",
+    "Loudoun Gateway": "N11",
+    "Ashburn": "N12",
+    "Metro Center": "C01", // duplicate from A01, but kept as in the original data.
+    "Fort Totten": "E06", // duplicate from B06, but kept as in the original data.
+    "Gallery Pl-Chinatown" : "F01", // duplicate from B01, but kept as in the original data.
+    "L'Enfant Plaza" : "F03" // duplicate from D03, but kept as in the original data.
+  };
+
+  return stationMap[name] || null;
 }

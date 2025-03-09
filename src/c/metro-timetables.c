@@ -9,15 +9,17 @@
 /* Display artifacts */
 static Window* welcome_window;
 static TextLayer* welcome_text_layer;
+static char welcome_text[] = "WMATA Metro\nTimetables";
 
 static Window* station_window;
 static MenuLayer* station_menu_layer;
 
 static Window* trains_window;
-static ScrollLayer* trains_scroll_layer;
 static TextLayer* trains_text_layer;
+static TextLayer* trains_title_layer;
 
-static char scroll_text[64];
+static char train_text[64];
+static char current_station[64];
 /* ===== */
 
 /* Data to and from watch */
@@ -41,8 +43,8 @@ static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, 
   AppMessageResult result = app_message_outbox_begin(&out_iter);
 
   if (result == APP_MSG_OK) {
-    char* value = stations[cell_index->row];
-    dict_write_cstring(out_iter, MESSAGE_KEY_TrainRequest, value);
+    strcpy(current_station, stations[cell_index->row]);
+    dict_write_cstring(out_iter, MESSAGE_KEY_TrainRequest, current_station);
     result = app_message_outbox_send();
 
     if (result != APP_MSG_OK) {
@@ -57,21 +59,24 @@ static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, 
 static void trains_window_load() {
   Layer* window_layer   = window_get_root_layer(trains_window);
   GRect bounds          = layer_get_bounds(window_layer);
-  GRect max_text_bounds = GRect(0, 0, bounds.size.w, 2000);
+  GRect title_bounds    = GRect(0, 0, bounds.size.w, bounds.size.h/8) ;
+  GRect text_bounds     = GRect(0, bounds.size.h/5, bounds.size.w, bounds.size.h);
 
-  trains_scroll_layer = scroll_layer_create(bounds);
-  scroll_layer_set_click_config_onto_window(trains_scroll_layer, trains_window);
+  trains_title_layer = text_layer_create(title_bounds);
+  text_layer_set_text(trains_title_layer, current_station);
+  text_layer_set_background_color(trains_title_layer, GColorBlack);
+  text_layer_set_text_color(trains_title_layer, GColorWhite);
+  text_layer_set_text_alignment(trains_title_layer, GTextAlignmentCenter);
+  layer_add_child(window_layer, text_layer_get_layer(trains_title_layer));
 
-  // Initialize the text layer
-  trains_text_layer = text_layer_create(max_text_bounds);
-  text_layer_set_text(trains_text_layer, scroll_text);
-  scroll_layer_add_child(trains_scroll_layer, text_layer_get_layer(trains_text_layer));
-  layer_add_child(window_layer, scroll_layer_get_layer(trains_scroll_layer));
+  trains_text_layer = text_layer_create(text_bounds);
+  text_layer_set_text(trains_text_layer, train_text);
+  layer_add_child(window_layer, text_layer_get_layer(trains_text_layer));
 }
 
 static void trains_window_unload(Window* window) {
   text_layer_destroy(trains_text_layer);
-  scroll_layer_destroy(trains_scroll_layer);
+  text_layer_destroy(trains_title_layer);
 }
 
 static void init_trains_window() {
@@ -83,10 +88,7 @@ static void init_trains_window() {
           .unload = trains_window_unload,
       }
   );
-  const bool animated = true;
-  window_stack_push(trains_window, animated);
 }
-
 
 static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* cell_index, void* callback_context) {
   char* name        = stations[cell_index->row];
@@ -129,8 +131,8 @@ void process_tuple(Tuple* t) {
     );
   }
   else if (key == MESSAGE_KEY_TrainResponse) {
-    strcpy(scroll_text, (char*)t->value->data);
-    init_trains_window();
+    strcpy(train_text, (char*)t->value->data);
+    window_stack_push(trains_window, true);
   }
   else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Key %d not recognized!", (int)key);
@@ -185,21 +187,8 @@ static void station_window_load() {
 
 static void station_window_unload(Window* window) { menu_layer_destroy(station_menu_layer); }
 
-static void prv_select_click_handler(ClickRecognizerRef recognizer, void* context) {}
-
-static void prv_up_click_handler(ClickRecognizerRef recognizer, void* context) {}
-
-static void prv_down_click_handler(ClickRecognizerRef recognizer, void* context) {}
-
-static void station_window_click_config_provider(void* context) {
-  window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
-  window_single_click_subscribe(BUTTON_ID_UP, prv_up_click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click_handler);
-}
-
 static void init_station_window() {
   station_window = window_create();
-  window_set_click_config_provider(station_window, station_window_click_config_provider);
   window_set_window_handlers(
       station_window,
       (WindowHandlers){
@@ -207,8 +196,6 @@ static void init_station_window() {
           .unload = station_window_unload,
       }
   );
-  const bool animated = true;
-  window_stack_push(station_window, animated);
 }
 
 /* ======================= Welcome Window ================================= */
@@ -216,16 +203,16 @@ static void init_station_window() {
 static void welcome_window_load() {
   Layer* window_layer = window_get_root_layer(welcome_window);
   GRect bounds        = layer_get_bounds(window_layer);
-  welcome_text_layer  = text_layer_create(GRect(0, 50, bounds.size.w, 20));
+  welcome_text_layer  = text_layer_create(GRect(0, 50, bounds.size.w, bounds.size.h/2));
 
-  text_layer_set_text(welcome_text_layer, "WMATA Metro\nTimetables");
+  text_layer_set_text(welcome_text_layer, welcome_text);
   text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(welcome_text_layer));
 }
 
 static void welcome_window_unload(Window* window) { text_layer_destroy(welcome_text_layer); }
 
-static void welcome_select_click_handler(ClickRecognizerRef recognizer, void* context) { init_station_window(); }
+static void welcome_select_click_handler(ClickRecognizerRef recognizer, void* context) { window_stack_push(station_window, true); }
 
 static void welcome_window_config_provider(void* context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, welcome_select_click_handler);
@@ -241,12 +228,13 @@ static void init_welcome_window() {
           .unload = welcome_window_unload,
       }
   );
-  const bool animated = true;
-  window_stack_push(welcome_window, animated);
+  window_stack_push(welcome_window, true);
 }
 
 static void prv_init(void) {
   init_welcome_window();
+  init_station_window();
+  init_trains_window();
 
   app_message_register_inbox_received(inbox_received_handler);
   app_message_register_inbox_dropped(inbox_dropped_handler);
@@ -256,8 +244,8 @@ static void prv_init(void) {
 }
 
 static void prv_deinit(void) {
-  window_destroy(station_window);
   window_destroy(trains_window);
+  window_destroy(station_window);
   window_destroy(welcome_window);
 
   for (uint32_t i = 0; i < stations_len; i++) {

@@ -19,6 +19,7 @@ static ScrollLayer* trains_scroll_layer;
 static TextLayer* trains_text_layer;
 
 static char scroll_text[64];
+static char current_station[64];
 /* ===== */
 
 /* Data to and from watch */

@@ -144,9 +144,7 @@ function nextTrain(station) {
       let train = r.Trains[i];
 
       if (train.Min === "ARR") {
-        train.Min = "Arriving";
       } else if (train.Min === "BRD") {
-        train.Min = "Boarding";
       } else if (train.Min === "1") {
         train.Min = "1min";
       } else {

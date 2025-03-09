@@ -21,15 +21,17 @@ static TextLayer* trains_title_layer;
 static char train_text[64];
 static char current_station[64];
 
-static GBitmap *s_bitmap;
+static GBitmap* s_bitmap;
 
 /* ===== */
 
 /* Data to and from watch */
 static bool s_js_ready;
 static char station_text[32];
-static uint32_t stations_len;
+static size_t stations_len;
 static char** stations;
+static size_t favorite_stations_len = 0;
+static char* favorite_stations[5]   = {NULL};
 /* ===== */
 
 // #ifdef PBL_ROUND
@@ -170,12 +172,51 @@ static void outbox_failed_handler(DictionaryIterator* iter, AppMessageResult rea
 }
 /* ===== */
 
-static void logo_update_proc(Layer *layer, GContext *ctx) {
-  GRect bitmap_bounds = gbitmap_get_bounds(s_bitmap);
+static void logo_update_proc(Layer* layer, GContext* ctx) {
+  GRect bitmap_bounds    = gbitmap_get_bounds(s_bitmap);
   bitmap_bounds.origin.x = (layer_get_frame(layer).size.w - bitmap_bounds.size.w) / 2;
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
   graphics_draw_bitmap_in_rect(ctx, s_bitmap, bitmap_bounds);
+}
+
+static size_t get_len(char** arr) {
+  size_t size = 0;
+  while (size < 5 && favorite_stations[size] != NULL) {
+    size++;
+  }
+  return size;
+}
+
+static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "In set_unset_favorite_station");
+  DictionaryIterator* out_iter;
+  AppMessageResult result = app_message_outbox_begin(&out_iter);
+  favorite_stations_len   = get_len(favorite_stations);
+
+  if (result == APP_MSG_OK) {
+    uint32_t action = MESSAGE_KEY_AddFavorite;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "There are %zu favorite stations.", favorite_stations_len);
+    char* candidate_station = stations[cell_index->row];
+    size_t i                = 0;
+    while (i < favorite_stations_len) {
+      if (strcmp(candidate_station, favorite_stations[i])) {
+        action = MESSAGE_KEY_RemoveFavorite;
+        break;
+      }
+      ++i;
+    }
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "There are now %zu favorite stations.", favorite_stations_len);
+    dict_write_cstring(out_iter, action, stations[cell_index->row]);
+    result = app_message_outbox_send();
+
+    if (result != APP_MSG_OK) {
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
+    }
+  }
+  else {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
+  }
 }
 
 static void station_window_load() {
@@ -185,10 +226,11 @@ static void station_window_load() {
 
   menu_layer_set_callbacks(
       station_menu_layer, NULL,
-      (MenuLayerCallbacks){.get_num_rows    = get_sections_count_callback,
-                           .get_cell_height = get_cell_height_callback,
-                           .draw_row        = draw_row_handler,
-                           .select_click    = get_train_data}
+      (MenuLayerCallbacks){.get_num_rows      = get_sections_count_callback,
+                           .get_cell_height   = get_cell_height_callback,
+                           .draw_row          = draw_row_handler,
+                           .select_click      = get_train_data,
+                           .select_long_click = set_unset_favorite_station}
   );
   menu_layer_set_click_config_onto_window(station_menu_layer, station_window);
   layer_add_child(window_layer, menu_layer_get_layer(station_menu_layer));
@@ -213,7 +255,8 @@ static void welcome_window_load() {
   Layer* window_layer = window_get_root_layer(welcome_window);
   GRect bounds        = layer_get_bounds(window_layer);
 
-  welcome_text_layer  = text_layer_create(GRect(0, bounds.size.h - (bounds.size.h/4) - 4, bounds.size.w, bounds.size.h/6));
+  welcome_text_layer =
+      text_layer_create(GRect(0, bounds.size.h - (bounds.size.h / 4) - 4, bounds.size.w, bounds.size.h / 6));
   text_layer_set_text(welcome_text_layer, welcome_text);
   text_layer_set_background_color(welcome_text_layer, GColorClear);
   text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);
@@ -234,7 +277,6 @@ static void welcome_window_config_provider(void* context) {
 
 static void init_welcome_window() {
   welcome_window = window_create();
-
   window_set_click_config_provider(welcome_window, welcome_window_config_provider);
   window_set_window_handlers(
       welcome_window,
@@ -257,7 +299,6 @@ static void prv_init(void) {
   app_message_register_outbox_sent(outbox_sent_handler);
   app_message_register_outbox_failed(outbox_failed_handler);
   app_message_open(400, 400);
-
 }
 
 static void prv_deinit(void) {

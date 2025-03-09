@@ -57,10 +57,10 @@ static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, 
 }
 
 static void trains_window_load() {
-  Layer* window_layer   = window_get_root_layer(trains_window);
-  GRect bounds          = layer_get_bounds(window_layer);
-  GRect title_bounds    = GRect(0, 0, bounds.size.w, bounds.size.h/8) ;
-  GRect text_bounds     = GRect(0, bounds.size.h/5, bounds.size.w, bounds.size.h);
+  Layer* window_layer = window_get_root_layer(trains_window);
+  GRect bounds        = layer_get_bounds(window_layer);
+  GRect title_bounds  = GRect(0, 0, bounds.size.w, bounds.size.h / 8);
+  GRect text_bounds   = GRect(0, bounds.size.h / 5, bounds.size.w, bounds.size.h);
 
   trains_title_layer = text_layer_create(title_bounds);
   text_layer_set_text(trains_title_layer, current_station);
@@ -126,9 +126,7 @@ void process_tuple(Tuple* t) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received station %d: %s", (int)key, t->value->cstring);
     stations[key - MESSAGE_KEY_Stations] = malloc(strlen(t->value->cstring) + 1);
     strcpy(stations[key - MESSAGE_KEY_Stations], t->value->cstring);
-    APP_LOG(
-        APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key, stations[key - MESSAGE_KEY_Stations]
-    );
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key, stations[key - MESSAGE_KEY_Stations]);
   }
   else if (key == MESSAGE_KEY_TrainResponse) {
     strcpy(train_text, (char*)t->value->data);
@@ -203,7 +201,7 @@ static void init_station_window() {
 static void welcome_window_load() {
   Layer* window_layer = window_get_root_layer(welcome_window);
   GRect bounds        = layer_get_bounds(window_layer);
-  welcome_text_layer  = text_layer_create(GRect(0, 50, bounds.size.w, bounds.size.h/2));
+  welcome_text_layer  = text_layer_create(GRect(0, 50, bounds.size.w, bounds.size.h / 2));
 
   text_layer_set_text(welcome_text_layer, welcome_text);
   text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);
@@ -212,7 +210,9 @@ static void welcome_window_load() {
 
 static void welcome_window_unload(Window* window) { text_layer_destroy(welcome_text_layer); }
 
-static void welcome_select_click_handler(ClickRecognizerRef recognizer, void* context) { window_stack_push(station_window, true); }
+static void welcome_select_click_handler(ClickRecognizerRef recognizer, void* context) {
+  window_stack_push(station_window, true);
+}
 
 static void welcome_window_config_provider(void* context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, welcome_select_click_handler);

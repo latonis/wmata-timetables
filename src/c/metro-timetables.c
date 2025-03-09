@@ -54,7 +54,7 @@ static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, 
     result = app_message_outbox_send();
 
     if (result != APP_MSG_OK) {
-      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox in get_train_data: %d", (int)result);
     }
   }
   else {
@@ -156,6 +156,7 @@ void process_tuple(Tuple* t) {
     window_stack_push(trains_window, true);
   }
   else if (key == MESSAGE_KEY_Favorites) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Populating favorites");
     populate_favorite_stations((char*)t->value->data);
   }
   else {
@@ -209,12 +210,14 @@ static size_t get_len(char** arr) {
   return size;
 }
 
-static void get_favorite_stations() {
-    DictionaryIterator* out_iter;
-    AppMessageResult result = app_message_outbox_begin(&out_iter);
-    if (result == APP_MSG_OK) {
-        dict_write_int(out_iter, MESSAGE_KEY_GetFavorites, 0, sizeof(size_t), 0);
-        result = app_message_outbox_send();
+static void get_favorite_stations(DictionaryIterator* out_iter) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "In get_favorite_stations");
+    int value = 0;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting favorites...");
+    dict_write_int(out_iter, MESSAGE_KEY_GetFavorites, &value, sizeof(int), 0);
+    AppMessageResult result = app_message_outbox_send();
+    if (result != APP_MSG_OK) {
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox in get_favorite_stations: %d", (int)result);
     }
 }
 
@@ -222,9 +225,8 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "In set_unset_favorite_station");
   DictionaryIterator* out_iter;
   AppMessageResult result = app_message_outbox_begin(&out_iter);
-  get_favorite_stations();
+  get_favorite_stations(out_iter);
   favorite_stations_len   = get_len(favorite_stations);
-
   if (result == APP_MSG_OK) {
     uint32_t action = MESSAGE_KEY_AddFavorite;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "There are %zu favorite stations.", favorite_stations_len);
@@ -244,9 +246,9 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
     result = app_message_outbox_send();
 
     if (result != APP_MSG_OK) {
-      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox in set_unset_favorite_station: %d", (int)result);
     }
-    get_favorite_stations();
+    get_favorite_stations(out_iter);
   }
   else {
     APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
@@ -263,8 +265,9 @@ static void station_window_load() {
       (MenuLayerCallbacks){.get_num_rows      = get_sections_count_callback,
                            .get_cell_height   = get_cell_height_callback,
                            .draw_row          = draw_row_handler,
-                           .select_click      = get_train_data,
-                           .select_long_click = set_unset_favorite_station}
+                           .select_click      = get_train_data
+                           // .select_long_click = set_unset_favorite_station
+      }
   );
   menu_layer_set_click_config_onto_window(station_menu_layer, station_window);
   layer_add_child(window_layer, menu_layer_get_layer(station_menu_layer));

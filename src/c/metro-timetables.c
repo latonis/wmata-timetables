@@ -177,8 +177,7 @@ static void logo_update_proc(Layer *layer, GContext *ctx) {
   // Get the bounds of the image
   // GRect bounds        = layer_get_bounds(layer);
   GRect bitmap_bounds = gbitmap_get_bounds(s_bitmap);
-  // graphics_draw_rect(ctx, bitmap_bounds);
-  // graphics_fill_rect(ctx, bounds, 0, GCornersAll);
+
   bitmap_bounds.origin.x = (layer_get_frame(layer).size.w - bitmap_bounds.size.w) / 2;
 
   // Set the compositing mode (GCompOpSet is required for transparency)
@@ -223,9 +222,8 @@ static void welcome_window_load() {
   Layer* window_layer = window_get_root_layer(welcome_window);
   GRect bounds        = layer_get_bounds(window_layer);
 
-  welcome_text_layer  = text_layer_create(GRect(0, bounds.size.h - (bounds.size.h/4), bounds.size.w, bounds.size.h/6));
+  welcome_text_layer  = text_layer_create(GRect(0, bounds.size.h - (bounds.size.h/4) - 4, bounds.size.w, bounds.size.h/6));
   text_layer_set_text(welcome_text_layer, welcome_text);
-  // make text layer background transparent
   text_layer_set_background_color(welcome_text_layer, GColorClear);
   text_layer_set_text_color(welcome_text_layer, GColorBlack);
   text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);

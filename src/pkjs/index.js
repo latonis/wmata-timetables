@@ -55,6 +55,24 @@ Pebble.addEventListener("appmessage", function (e) {
   if (dict["TrainRequest"]) {
     console.log("TrainRequest: " + dict["TrainRequest"]);
     nextTrain(getCodeFromName(dict["TrainRequest"]));
+  } else if (dict["AddFavorite"]) {
+    console.log("AddFavorite" + dict["AddFavorite"])
+    let favorite_stations = JSON.parse(localStorage.getItem("favorite_stations"));
+    if (!favorite_stations.includes(dict["AddFavorite"])) {
+      favorite_stations.push(dict["AddFavorite"]);
+      localStorage.setItem("favorite_stations", JSON.stringify(favorite_stations));
+    }
+  } else if (dict["RemoveFavorite"]) {
+    console.log("RemoveFavorite" + dict["RemoveFavorite"])
+    let favorite_stations = JSON.parse(localStorage.getItem("favorite_stations"));
+    favorite_stations = favorite_stations.filter((station) => station !== dict["RemoveFavorite"]);
+    localStorage.setItem("favorite_stations", JSON.stringify(favorite_stations));
+  } else if (dict["GetFavorites"]) {
+    console.log("GetFavorites:" + dict["GetFavorites"]);
+    let favorite_stations = JSON.parse(localStorage.getItem("favorite_stations"));
+    console.log("Sending favorites")
+    console.log(favorite_stations.join("|"))
+    Pebble.sendAppMessage({ FavoriteStations: stringToBytes(favorite_stations.join("|")) });
   }
 });
 

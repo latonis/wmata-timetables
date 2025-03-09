@@ -218,7 +218,6 @@ static void welcome_window_load() {
   welcome_text_layer  = text_layer_create(GRect(0, bounds.size.h - (bounds.size.h/4) - 4, bounds.size.w, bounds.size.h/6));
   text_layer_set_text(welcome_text_layer, welcome_text);
   text_layer_set_background_color(welcome_text_layer, GColorClear);
-  text_layer_set_text_color(welcome_text_layer, GColorBlack);
   text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);
 
   layer_set_update_proc(window_layer, logo_update_proc);

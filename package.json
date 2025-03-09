@@ -7,12 +7,16 @@
   ],
   "version": "1.0.0",
   "keywords": [
-    "pebble-app"
+    "pebble-app",
+    "transit",
+    "wmata",
+    "metro",
+    "timetables"
   ],
   "private": true,
   "dependencies": {},
   "pebble": {
-    "displayName": "metro-timetables",
+    "displayName": "WMATA Timetables",
     "uuid": "866d374a-4bcf-4846-9b1e-f8f38f7c4a87",
     "sdkVersion": "3",
     "enableMultiJS": true,

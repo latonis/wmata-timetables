@@ -20,6 +20,9 @@ static TextLayer* trains_title_layer;
 
 static char train_text[64];
 static char current_station[64];
+
+static GBitmap *s_bitmap;
+
 /* ===== */
 
 /* Data to and from watch */
@@ -169,6 +172,22 @@ static void outbox_failed_handler(DictionaryIterator* iter, AppMessageResult rea
 }
 /* ===== */
 
+static void logo_update_proc(Layer *layer, GContext *ctx) {
+  // Custom drawing happens here!
+  // Get the bounds of the image
+  GRect bounds        = layer_get_bounds(layer);
+  GRect bitmap_bounds = gbitmap_get_bounds(s_bitmap);
+  graphics_draw_rect(ctx, bitmap_bounds);
+  graphics_fill_rect(ctx, bounds, 0, GCornersAll);
+  bitmap_bounds.origin.x = (layer_get_frame(layer).size.w - bitmap_bounds.size.w) / 2;
+
+  // Set the compositing mode (GCompOpSet is required for transparency)
+  graphics_context_set_compositing_mode(ctx, GCompOpSet);
+
+  // Draw the image
+  graphics_draw_bitmap_in_rect(ctx, s_bitmap, bitmap_bounds);
+}
+
 static void station_window_load() {
   Layer* window_layer = window_get_root_layer(station_window);
   GRect bounds        = layer_get_bounds(window_layer);
@@ -203,10 +222,11 @@ static void init_station_window() {
 static void welcome_window_load() {
   Layer* window_layer = window_get_root_layer(welcome_window);
   GRect bounds        = layer_get_bounds(window_layer);
-  welcome_text_layer  = text_layer_create(GRect(0, 50, bounds.size.w, bounds.size.h/2));
 
+  welcome_text_layer  = text_layer_create(GRect(0, bounds.size.h - (bounds.size.h/4), bounds.size.w, bounds.size.h/6));
   text_layer_set_text(welcome_text_layer, welcome_text);
   text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);
+  layer_set_update_proc(window_layer, logo_update_proc);
   layer_add_child(window_layer, text_layer_get_layer(welcome_text_layer));
 }
 
@@ -220,6 +240,7 @@ static void welcome_window_config_provider(void* context) {
 
 static void init_welcome_window() {
   welcome_window = window_create();
+
   window_set_click_config_provider(welcome_window, welcome_window_config_provider);
   window_set_window_handlers(
       welcome_window,
@@ -235,12 +256,14 @@ static void prv_init(void) {
   init_welcome_window();
   init_station_window();
   init_trains_window();
+  s_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LOGO);
 
   app_message_register_inbox_received(inbox_received_handler);
   app_message_register_inbox_dropped(inbox_dropped_handler);
   app_message_register_outbox_sent(outbox_sent_handler);
   app_message_register_outbox_failed(outbox_failed_handler);
-  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+  app_message_open(400, 400);
+
 }
 
 static void prv_deinit(void) {
@@ -252,6 +275,8 @@ static void prv_deinit(void) {
     free(stations[i]);
   }
   free(stations);
+
+  gbitmap_destroy(s_bitmap);
 }
 
 int main(void) {

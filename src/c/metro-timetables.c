@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "message_keys.auto.h"
 
@@ -16,7 +17,7 @@ static Window* trains_window;
 static ScrollLayer* trains_scroll_layer;
 static TextLayer* trains_text_layer;
 
-static char scroll_text[] = "RD Glenmont 3mins\nRD Shady Grove 5mins\nRD Glenmont 9mins";
+static char scroll_text[64];
 /* ===== */
 
 /* Data to and from watch */
@@ -33,6 +34,26 @@ static int16_t get_cell_height_callback(MenuLayer* menu_layer, MenuIndex* cell_i
 // #endif
 
 /* ======================= Trains Window ================================= */
+static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "In select callback");
+  DictionaryIterator* out_iter;
+
+  AppMessageResult result = app_message_outbox_begin(&out_iter);
+
+  if (result == APP_MSG_OK) {
+    char* value = favorite_stations[cell_index->row];
+    dict_write_cstring(out_iter, MESSAGE_KEY_TrainRequest, value);
+    result = app_message_outbox_send();
+
+    if (result != APP_MSG_OK) {
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
+    }
+  }
+  else {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
+  }
+}
+
 static void trains_window_load() {
   Layer* window_layer   = window_get_root_layer(trains_window);
   GRect bounds          = layer_get_bounds(window_layer);
@@ -66,7 +87,6 @@ static void init_trains_window() {
   window_stack_push(trains_window, animated);
 }
 
-/* ======================= Stations Window ================================= */
 
 static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* cell_index, void* callback_context) {
   char* name        = favorite_stations[cell_index->row];
@@ -87,35 +107,13 @@ static uint16_t get_sections_count_callback(
   return count;
 }
 
-/* Helpers */
-void test_send() {
-  DictionaryIterator* out_iter;
-
-  AppMessageResult result = app_message_outbox_begin(&out_iter);
-
-  if (result == APP_MSG_OK) {
-    char* value = "A03";
-    dict_write_cstring(out_iter, MESSAGE_KEY_TrainRequest, value);
-    result = app_message_outbox_send();
-
-    if (result != APP_MSG_OK) {
-      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
-    }
-  }
-  else {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
-  }
-}
-
 void process_tuple(Tuple* t) {
   uint32_t key = t->key;
 
   int value = t->value->int32;
 
   if (key == MESSAGE_KEY_JSReady) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "WOO GOT READY: %d", 100);
     s_js_ready = true;
-    test_send();
   }
   else if (key == MESSAGE_KEY_FavoriteStationsLen) {
     favorite_stations_len = value;
@@ -129,6 +127,10 @@ void process_tuple(Tuple* t) {
     APP_LOG(
         APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key, favorite_stations[key - MESSAGE_KEY_FavoriteStations]
     );
+  }
+  else if (key == MESSAGE_KEY_TrainResponse) {
+    strcpy(scroll_text, (char*)t->value->data);
+    init_trains_window();
   }
   else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Key %d not recognized!", (int)key);
@@ -175,7 +177,7 @@ static void station_window_load() {
       (MenuLayerCallbacks){.get_num_rows    = get_sections_count_callback,
                            .get_cell_height = get_cell_height_callback,
                            .draw_row        = draw_row_handler,
-                           .select_click    = init_trains_window}
+                           .select_click    = get_train_data}
   );
   menu_layer_set_click_config_onto_window(station_menu_layer, station_window);
   layer_add_child(window_layer, menu_layer_get_layer(station_menu_layer));

@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "message_keys.auto.h"
 
@@ -13,7 +14,7 @@ static MenuLayer* s_menu_layer;
 static ScrollLayer* s_scroll_layer;
 static TextLayer* s_text_scroll_layer;
 
-static char scroll_text[] = "RD Glenmont 3mins\nRD Shady Grove 5mins\nRD Glenmont 9mins";
+static char scroll_text[64];
 /* ===== */
 
 /* Data to and from watch */
@@ -84,7 +85,22 @@ static void trains_window_init() {
 
 void select_callback(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "In select callback");
-  trains_window_init();
+  DictionaryIterator* out_iter;
+
+  AppMessageResult result = app_message_outbox_begin(&out_iter);
+
+  if (result == APP_MSG_OK) {
+    char *value = favorite_stations[cell_index->row];
+    dict_write_cstring(out_iter, MESSAGE_KEY_TrainRequest, value);
+    result = app_message_outbox_send();
+
+    if (result != APP_MSG_OK) {
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
+    }
+  }
+  else {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
+  }
 }
 
 /* ======================================================================== */
@@ -151,34 +167,13 @@ static void load_station_window() {
 }
 
 /* Helpers */
-void test_send() {
-  DictionaryIterator* out_iter;
-
-  AppMessageResult result = app_message_outbox_begin(&out_iter);
-
-  if (result == APP_MSG_OK) {
-    char *value = "A03";
-    dict_write_cstring(out_iter, MESSAGE_KEY_TrainRequest, value);
-    result = app_message_outbox_send();
-
-    if (result != APP_MSG_OK) {
-      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
-    }
-  }
-  else {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
-  }
-}
-
 void process_tuple(Tuple* t) {
   uint32_t key = t->key;
 
   int value = t->value->int32;
 
   if (key == MESSAGE_KEY_JSReady) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "WOO GOT READY: %d", 100);
     s_js_ready = true;
-    test_send();
   }
   else if (key == MESSAGE_KEY_FavoriteStationsLen) {
     favorite_stations_len = value;
@@ -192,6 +187,10 @@ void process_tuple(Tuple* t) {
     APP_LOG(
         APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key, favorite_stations[key - MESSAGE_KEY_FavoriteStations]
     );
+  }
+  else if (key == MESSAGE_KEY_TrainResponse) {
+      strcpy(scroll_text, (char*) t->value->data);
+      trains_window_init();
   }
   else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Key %d not recognized!", (int)key);

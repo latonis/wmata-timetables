@@ -9,6 +9,7 @@
 /* Display artifacts */
 static Window* welcome_window;
 static TextLayer* welcome_text_layer;
+static char welcome_text[] = "WMATA Metro\nTimetables";
 
 static Window* station_window;
 static MenuLayer* station_menu_layer;
@@ -202,9 +203,9 @@ static void init_station_window() {
 static void welcome_window_load() {
   Layer* window_layer = window_get_root_layer(welcome_window);
   GRect bounds        = layer_get_bounds(window_layer);
-  welcome_text_layer  = text_layer_create(GRect(0, 50, bounds.size.w, 20));
+  welcome_text_layer  = text_layer_create(GRect(0, 50, bounds.size.w, bounds.size.h/2));
 
-  text_layer_set_text(welcome_text_layer, "WMATA Metro\nTimetables");
+  text_layer_set_text(welcome_text_layer, welcome_text);
   text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(welcome_text_layer));
 }

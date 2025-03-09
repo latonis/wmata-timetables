@@ -69,7 +69,6 @@ static void init_trains_window() {
 /* ======================= Stations Window ================================= */
 
 static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* cell_index, void* callback_context) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "In draw row handler!");
   char* name        = favorite_stations[cell_index->row];
   int text_gap_size = STATION_TEXT_GAP - strlen(name);
 
@@ -85,7 +84,6 @@ static uint16_t get_sections_count_callback(
     struct MenuLayer* menulayer, uint16_t section_index, void* callback_context
 ) {
   int count = favorite_stations_len;
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "There are %d stations!", count);
   return count;
 }
 
@@ -168,8 +166,7 @@ static void outbox_failed_handler(DictionaryIterator* iter, AppMessageResult rea
 /* ===== */
 
 static void station_window_load() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Loading station window!");
-  Layer* window_layer = window_get_root_layer(welcome_window);
+  Layer* window_layer = window_get_root_layer(station_window);
   GRect bounds        = layer_get_bounds(window_layer);
   station_menu_layer  = menu_layer_create(bounds);
 
@@ -182,7 +179,6 @@ static void station_window_load() {
   );
   menu_layer_set_click_config_onto_window(station_menu_layer, station_window);
   layer_add_child(window_layer, menu_layer_get_layer(station_menu_layer));
-  layer_mark_dirty(menu_layer_get_layer(station_menu_layer));
 }
 
 static void station_window_unload(Window* window) { menu_layer_destroy(station_menu_layer); }
@@ -200,7 +196,6 @@ static void station_window_click_config_provider(void* context) {
 }
 
 static void init_station_window() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Initializing station window!");
   station_window = window_create();
   window_set_click_config_provider(station_window, station_window_click_config_provider);
   window_set_window_handlers(
@@ -271,8 +266,6 @@ static void prv_deinit(void) {
 
 int main(void) {
   prv_init();
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", station_window);
   app_event_loop();
   prv_deinit();
 }

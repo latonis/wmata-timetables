@@ -27,12 +27,10 @@
     },
     "messageKeys": [
       "JSReady",
-      "Stations",
-      "StationsLen",
       "TrainRequest",
       "TrainResponse",
-      "FavoriteStationsLen",
-      "FavoriteStations"
+      "StationsLen",
+      "Stations"
     ],
     "resources": {
       "media": []

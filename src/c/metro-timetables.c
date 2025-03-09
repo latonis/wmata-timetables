@@ -25,8 +25,8 @@ static char current_station[64];
 /* Data to and from watch */
 static bool s_js_ready;
 static char station_text[32];
-static uint32_t favorite_stations_len;
-static char** favorite_stations;
+static uint32_t stations_len;
+static char** stations;
 /* ===== */
 
 // #ifdef PBL_ROUND
@@ -43,7 +43,7 @@ static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, 
   AppMessageResult result = app_message_outbox_begin(&out_iter);
 
   if (result == APP_MSG_OK) {
-    char* value = favorite_stations[cell_index->row];
+    char* value = stations[cell_index->row];
     dict_write_cstring(out_iter, MESSAGE_KEY_TrainRequest, value);
     result = app_message_outbox_send();
 
@@ -90,7 +90,7 @@ static void init_trains_window() {
 }
 
 static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* cell_index, void* callback_context) {
-  char* name        = favorite_stations[cell_index->row];
+  char* name        = stations[cell_index->row];
   int text_gap_size = STATION_TEXT_GAP - strlen(name);
 
   // Using simple space padding between name and station_text for appearance
@@ -104,7 +104,7 @@ static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* 
 static uint16_t get_sections_count_callback(
     struct MenuLayer* menulayer, uint16_t section_index, void* callback_context
 ) {
-  int count = favorite_stations_len;
+  int count = stations_len;
   return count;
 }
 
@@ -116,17 +116,17 @@ void process_tuple(Tuple* t) {
   if (key == MESSAGE_KEY_JSReady) {
     s_js_ready = true;
   }
-  else if (key == MESSAGE_KEY_FavoriteStationsLen) {
-    favorite_stations_len = value;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received %d stations", (int)favorite_stations_len);
-    favorite_stations = malloc(favorite_stations_len * sizeof(char*));
+  else if (key == MESSAGE_KEY_StationsLen) {
+    stations_len = value;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received %d stations", (int)stations_len);
+    stations = malloc(stations_len * sizeof(char*));
   }
-  else if (key >= MESSAGE_KEY_FavoriteStations && key <= (MESSAGE_KEY_FavoriteStations + (int)favorite_stations_len)) {
+  else if (key >= MESSAGE_KEY_Stations && key <= (MESSAGE_KEY_Stations + (int)stations_len)) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received station %d: %s", (int)key, t->value->cstring);
-    favorite_stations[key - MESSAGE_KEY_FavoriteStations] = malloc(strlen(t->value->cstring) + 1);
-    strcpy(favorite_stations[key - MESSAGE_KEY_FavoriteStations], t->value->cstring);
+    stations[key - MESSAGE_KEY_Stations] = malloc(strlen(t->value->cstring) + 1);
+    strcpy(stations[key - MESSAGE_KEY_Stations], t->value->cstring);
     APP_LOG(
-        APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key, favorite_stations[key - MESSAGE_KEY_FavoriteStations]
+        APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key, stations[key - MESSAGE_KEY_Stations]
     );
   }
   else if (key == MESSAGE_KEY_TrainResponse) {
@@ -137,7 +137,7 @@ void process_tuple(Tuple* t) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Key %d not recognized!", (int)key);
   }
 
-  if (key == (MESSAGE_KEY_FavoriteStations + (int)favorite_stations_len) - 1) {
+  if (key == (MESSAGE_KEY_Stations + (int)stations_len) - 1) {
     // invalidate the layer so it redraws
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Invalidating menu layer");
   }
@@ -248,10 +248,10 @@ static void prv_deinit(void) {
   window_destroy(trains_window);
   window_destroy(welcome_window);
 
-  for (uint32_t i = 0; i < favorite_stations_len; i++) {
-    free(favorite_stations[i]);
+  for (uint32_t i = 0; i < stations_len; i++) {
+    free(stations[i]);
   }
-  free(favorite_stations);
+  free(stations);
 }
 
 int main(void) {

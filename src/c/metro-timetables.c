@@ -173,17 +173,10 @@ static void outbox_failed_handler(DictionaryIterator* iter, AppMessageResult rea
 /* ===== */
 
 static void logo_update_proc(Layer *layer, GContext *ctx) {
-  // Custom drawing happens here!
-  // Get the bounds of the image
-  // GRect bounds        = layer_get_bounds(layer);
   GRect bitmap_bounds = gbitmap_get_bounds(s_bitmap);
-
   bitmap_bounds.origin.x = (layer_get_frame(layer).size.w - bitmap_bounds.size.w) / 2;
 
-  // Set the compositing mode (GCompOpSet is required for transparency)
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
-
-  // Draw the image
   graphics_draw_bitmap_in_rect(ctx, s_bitmap, bitmap_bounds);
 }
 

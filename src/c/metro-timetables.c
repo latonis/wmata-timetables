@@ -243,11 +243,13 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
     if (favorite_index != -1) {
         action = MESSAGE_KEY_RemoveFavorite;
         for (size_t j = favorite_index; j < favorite_stations_len - 1; ++j) {
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "%s = %s", favorite_stations[j], favorite_stations[j + 1]);
             strcpy(favorite_stations[j], favorite_stations[j + 1]);
         }
+        free(favorite_stations[favorite_stations_len - 1]);
         favorite_stations_len--;
     } else {
-        favorite_stations[favorite_stations_len] = malloc(strlen(candidate_station) + 1);
+        favorite_stations[favorite_stations_len] = malloc(sizeof(char) * 64);
         strcpy(favorite_stations[favorite_stations_len], candidate_station);
         favorite_stations_len++;
     }
@@ -267,6 +269,7 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
 
   // rerendering the menu layer to show the change in favorite status
   Layer* l = menu_layer_get_layer(menu_layer);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Marked the layer dirty");
   layer_mark_dirty(l);
 }
 

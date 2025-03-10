@@ -232,10 +232,10 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
     uint32_t action = MESSAGE_KEY_AddFavorite;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "There are %zu favorite stations.", favorite_stations_len);
     char* candidate_station = stations[cell_index->row];
-    int is_favorite = is_favorite_station(candidate_station);
-    if (is_favorite != -1) {
+    int favorite_index = is_favorite_station(candidate_station);
+    if (favorite_index != -1) {
         action = MESSAGE_KEY_RemoveFavorite;
-        for (size_t j = is_favorite; j < favorite_stations_len - 1; ++j) {
+        for (size_t j = favorite_index; j < favorite_stations_len - 1; ++j) {
             strcpy(favorite_stations[j], favorite_stations[j + 1]);
         }
         favorite_stations_len--;

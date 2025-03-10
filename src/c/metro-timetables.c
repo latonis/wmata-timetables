@@ -145,7 +145,7 @@ static void populate_favorite_stations(char* from_js) {
             *next = '\0';
         }
 
-        favorite_stations[curStationIdx] = malloc(sizeof(char) * 64);
+        favorite_stations[curStationIdx] = calloc(64, sizeof(char));
         strncpy(favorite_stations[curStationIdx], station, 64 - 1);
         favorite_stations[curStationIdx][63] = '\0';
 

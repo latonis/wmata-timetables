@@ -1,5 +1,5 @@
 {
-  "name": "metro-timetables",
+  "name": "wmata-times",
   "author": "Jacob Latonis",
   "contributors": [
     "Julia Paluch",
@@ -16,7 +16,7 @@
   "private": true,
   "dependencies": {},
   "pebble": {
-    "displayName": "WMATA Timetables",
+    "displayName": "WMATA Times",
     "uuid": "866d374a-4bcf-4846-9b1e-f8f38f7c4a87",
     "sdkVersion": "3",
     "enableMultiJS": true,
@@ -45,6 +45,12 @@
           "name": "IMAGE_LOGO",
           "file": "img/logo_pixel.png",
           "spaceOptimization": "memory"
+        },
+        {
+          "menuIcon": true,
+          "type": "png",
+          "name": "IMAGE_MENU_ICON",
+          "file": "img/icon/icon_25.png"
         }
       ]
     }

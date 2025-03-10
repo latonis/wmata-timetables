@@ -137,8 +137,6 @@ static uint16_t get_sections_count_callback(
 }
 
 static void populate_favorite_stations(char* from_js) {
-  // | separated list of favorite stations, don't use strtok
-  // ensure the string is null-terminated
     size_t curStationIdx = 0;
     char* station = from_js;
     while (*station != '\0') {

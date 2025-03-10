@@ -27,6 +27,8 @@ static char train_text[64];
 static char current_station[64];
 
 static GBitmap* s_bitmap;
+static GBitmap* black_heart_bitmap;
+static GBitmap* white_heart_bitmap;
 
 /* ===== */
 
@@ -111,17 +113,20 @@ static void init_trains_window() {
 }
 
 static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* cell_index, void* callback_context) {
-  char* name        = stations[cell_index->row];
-  int text_gap_size = STATION_TEXT_GAP - strlen(name);
+  char* station_name        = stations[cell_index->row];
+  int text_gap_size = STATION_TEXT_GAP - strlen(station_name);
+  GBitmap* favorite_icon = NULL;
   // Using simple space padding between name and station_text for appearance
   // of edge-alignment
-  snprintf(station_text, sizeof(station_text), "%s", PBL_IF_ROUND_ELSE("", name));
-  if (is_favorite_station(name) != -1) {
-    strcat(station_text, " (F)");
+  if (is_favorite_station(station_name) != -1) {
+      if (menu_cell_layer_is_highlighted(cell_layer)) {
+        favorite_icon = white_heart_bitmap;
+      }
+      else {
+        favorite_icon = black_heart_bitmap;
+      }
   }
-  menu_cell_basic_draw(
-      ctx, cell_layer, PBL_IF_ROUND_ELSE(name, station_text), PBL_IF_ROUND_ELSE(station_text, NULL), NULL
-  );
+  menu_cell_basic_draw(ctx, cell_layer, station_name, NULL, favorite_icon);
 }
 
 static uint16_t get_sections_count_callback(
@@ -339,7 +344,11 @@ static void prv_init(void) {
   init_welcome_window();
   init_station_window();
   init_trains_window();
+
   s_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LOGO);
+  black_heart_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BLACK_HEART_ICON);
+  white_heart_bitmap = gbitmap_create_with_resource(RESOURCE_ID_WHITE_HEART_ICON);
+
   favorite_stations = malloc(MAX_FAVORITE_STATIONS * sizeof(char*));
   app_message_register_inbox_received(inbox_received_handler);
   app_message_register_inbox_dropped(inbox_dropped_handler);
@@ -359,6 +368,8 @@ static void prv_deinit(void) {
   free(stations);
 
   gbitmap_destroy(s_bitmap);
+  gbitmap_destroy(black_heart_bitmap);
+  gbitmap_destroy(white_heart_bitmap);
   for (size_t i = 0; i < MAX_FAVORITE_STATIONS; ++i) {
     free(favorite_stations[i]);
   }

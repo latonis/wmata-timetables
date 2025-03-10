@@ -51,6 +51,16 @@
           "type": "png",
           "name": "IMAGE_MENU_ICON",
           "file": "img/icon/icon_25.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "BLACK_HEART_ICON",
+          "file": "img/black_heart.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "WHITE_HEART_ICON",
+          "file": "img/white_heart.png"
         }
       ]
     }

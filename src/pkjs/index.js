@@ -137,12 +137,15 @@ Pebble.addEventListener("ready", function () {
   Pebble.sendAppMessage({ JSReady: 1 });
 
   let favorite_stations = JSON.parse(localStorage.getItem("favorite_stations"));
-  let tmp_bytes = stringToBytes(favorite_stations.join("|"));
-  tmp_bytes.push(0)
+
   if (favorite_stations == null) {
     favorite_stations = [];
   }
 
+  let tmp_bytes = stringToBytes(favorite_stations.join("|"));
+  tmp_bytes.push(0)
+
+console.log(favorite_stations)
   Pebble.sendAppMessage({ Favorites: tmp_bytes });
 
   let stations = Object.keys(stationMap)

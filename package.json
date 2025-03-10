@@ -61,6 +61,21 @@
           "type": "bitmap",
           "name": "WHITE_HEART_ICON",
           "file": "img/white_heart.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "METRO_ICON",
+          "file": "img/transit/metro.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "BUS_ICON",
+          "file": "img/transit/bus.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "FAVORITE_ICON",
+          "file": "img/transit/favorite.png"
         }
       ]
     }

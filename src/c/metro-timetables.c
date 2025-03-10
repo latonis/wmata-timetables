@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "gcolor_definitions.h"
 #include "message_keys.auto.h"
 
 /* silly little max constants */
@@ -30,6 +31,11 @@ static char current_station[64];
 static GBitmap* s_bitmap;
 static GBitmap* black_heart_bitmap;
 static GBitmap* white_heart_bitmap;
+static GBitmap* bus_bitmap;
+static GBitmap* metro_bitmap;
+static GBitmap* favorite_bitmap;
+
+ActionBarLayer *action_bar;
 
 /* ===== */
 
@@ -222,7 +228,7 @@ static void outbox_failed_handler(DictionaryIterator* iter, AppMessageResult rea
 
 static void logo_update_proc(Layer* layer, GContext* ctx) {
   GRect bitmap_bounds    = gbitmap_get_bounds(s_bitmap);
-  bitmap_bounds.origin.x = (layer_get_frame(layer).size.w - bitmap_bounds.size.w) / 2;
+  bitmap_bounds.origin.x = (layer_get_frame(layer).size.w - bitmap_bounds.size.w - ACTION_BAR_WIDTH) / 2;
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
   graphics_draw_bitmap_in_rect(ctx, s_bitmap, bitmap_bounds);
@@ -311,21 +317,6 @@ static void init_station_window() {
 }
 
 /* ======================= Welcome Window ================================= */
-
-static void welcome_window_load() {
-  Layer* window_layer = window_get_root_layer(welcome_window);
-  GRect bounds        = layer_get_bounds(window_layer);
-
-  welcome_text_layer =
-      text_layer_create(GRect(0, bounds.size.h - (bounds.size.h / 4) - 4, bounds.size.w, bounds.size.h / 6));
-  text_layer_set_text(welcome_text_layer, welcome_text);
-  text_layer_set_background_color(welcome_text_layer, GColorClear);
-  text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);
-
-  layer_set_update_proc(window_layer, logo_update_proc);
-  layer_add_child(window_layer, text_layer_get_layer(welcome_text_layer));
-}
-
 static void welcome_window_unload(Window* window) { text_layer_destroy(welcome_text_layer); }
 
 static void welcome_select_click_handler(ClickRecognizerRef recognizer, void* context) {
@@ -333,7 +324,29 @@ static void welcome_select_click_handler(ClickRecognizerRef recognizer, void* co
 }
 
 static void welcome_window_config_provider(void* context) {
-  window_single_click_subscribe(BUTTON_ID_SELECT, welcome_select_click_handler);
+  window_single_click_subscribe(BUTTON_ID_UP, welcome_select_click_handler);
+}
+
+static void welcome_window_load() {
+  Layer* window_layer = window_get_root_layer(welcome_window);
+  GRect bounds        = layer_get_bounds(window_layer);
+  action_bar = action_bar_layer_create();
+
+  action_bar_layer_set_background_color(action_bar, GColorDarkGray);
+  action_bar_layer_set_icon(action_bar, BUTTON_ID_DOWN, bus_bitmap);
+  action_bar_layer_set_icon(action_bar, BUTTON_ID_UP, metro_bitmap);
+  action_bar_layer_set_icon(action_bar, BUTTON_ID_SELECT, favorite_bitmap);
+  action_bar_layer_add_to_window(action_bar, welcome_window);
+  action_bar_layer_set_click_config_provider(action_bar, welcome_window_config_provider);
+
+  welcome_text_layer =
+      text_layer_create(GRect(0, bounds.size.h - (bounds.size.h / 4) - 4, bounds.size.w-ACTION_BAR_WIDTH, bounds.size.h / 6));
+  text_layer_set_text(welcome_text_layer, welcome_text);
+  text_layer_set_background_color(welcome_text_layer, GColorClear);
+  text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);
+
+  layer_set_update_proc(window_layer, logo_update_proc);
+  layer_add_child(window_layer, text_layer_get_layer(welcome_text_layer));
 }
 
 static void init_welcome_window() {
@@ -350,6 +363,10 @@ static void init_welcome_window() {
 }
 
 static void prv_init(void) {
+  bus_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BUS_ICON);
+  metro_bitmap = gbitmap_create_with_resource(RESOURCE_ID_METRO_ICON);
+  favorite_bitmap = gbitmap_create_with_resource(RESOURCE_ID_FAVORITE_ICON);
+
   init_welcome_window();
   init_station_window();
   init_trains_window();
@@ -371,6 +388,11 @@ static void prv_deinit(void) {
   window_destroy(station_window);
   window_destroy(welcome_window);
 
+  for (size_t i = 0; i < favorite_stations_len; ++i) {
+    free(favorite_stations[i]);
+  }
+  free(favorite_stations);
+
   for (uint32_t i = 0; i < stations_len; i++) {
     free(stations[i]);
   }
@@ -379,10 +401,9 @@ static void prv_deinit(void) {
   gbitmap_destroy(s_bitmap);
   gbitmap_destroy(black_heart_bitmap);
   gbitmap_destroy(white_heart_bitmap);
-  for (size_t i = 0; i < favorite_stations_len; ++i) {
-    free(favorite_stations[i]);
-  }
-  free(favorite_stations);
+  gbitmap_destroy(favorite_bitmap);
+  gbitmap_destroy(bus_bitmap);
+  gbitmap_destroy(metro_bitmap);
 }
 
 int main(void) {

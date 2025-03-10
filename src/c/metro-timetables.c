@@ -7,6 +7,8 @@
 /* silly little max constants */
 #define STATION_TEXT_GAP 14
 #define MAX_FAVORITE_STATIONS 99
+#define MAX_OUTBOX_SIZE 1000
+#define MAX_INBOX_SIZE 1000
 /* ===== */
 
 /* Display artifacts */
@@ -343,7 +345,7 @@ static void prv_init(void) {
   app_message_register_inbox_dropped(inbox_dropped_handler);
   app_message_register_outbox_sent(outbox_sent_handler);
   app_message_register_outbox_failed(outbox_failed_handler);
-  app_message_open(1000, 1000);
+  app_message_open(MAX_INBOX_SIZE,  MAX_OUTBOX_SIZE);
 }
 
 static void prv_deinit(void) {
@@ -357,10 +359,10 @@ static void prv_deinit(void) {
   free(stations);
 
   gbitmap_destroy(s_bitmap);
-    for (size_t i = 0; i < MAX_FAVORITE_STATIONS; ++i) {
-        free(favorite_stations[i]);
-    }
-    free(favorite_stations);
+  for (size_t i = 0; i < MAX_FAVORITE_STATIONS; ++i) {
+    free(favorite_stations[i]);
+  }
+  free(favorite_stations);
 }
 
 int main(void) {

@@ -139,6 +139,7 @@ Pebble.addEventListener("ready", function () {
   Pebble.sendAppMessage({ JSReady: 1 });
 
   let favorite_stations = JSON.parse(localStorage.getItem("favorite_stations"));
+
   if (favorite_stations == null) {
     favorite_stations = [];
   }

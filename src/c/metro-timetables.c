@@ -258,6 +258,7 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
     APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
   }
 
+  // rerendering the menu layer to show the change in favorite status
   Layer* l = menu_layer_get_layer(menu_layer);
   layer_mark_dirty(l);
 }

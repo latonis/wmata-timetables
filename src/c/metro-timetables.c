@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "message_keys.auto.h"
@@ -49,7 +50,6 @@ static int16_t get_cell_height_callback(MenuLayer* menu_layer, MenuIndex* cell_i
 
 static int is_favorite_station(char* station) {
   for (size_t i = 0; i < favorite_stations_len; ++i) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s = %s", station, favorite_stations[i]);
     if (strcmp(station, favorite_stations[i]) == 0) {
       return i;
     }
@@ -137,22 +137,29 @@ static uint16_t get_sections_count_callback(
 }
 
 static void populate_favorite_stations(char* from_js) {
-  size_t curStationIdx = 0;
-  size_t charIdx       = 0;
-  char curStationStr[64];
-  for (size_t i = 0; i < strlen(from_js); ++i) {
-    if (from_js[i] == '|') {
-      strcpy(favorite_stations[curStationIdx], curStationStr);
-      memset(curStationStr, 0, 64);  // clear buffer
-      ++curStationIdx;
-      charIdx = 0;
-      continue;
+  // | separated list of favorite stations, don't use strtok
+  // ensure the string is null-terminated
+    size_t curStationIdx = 0;
+    char* station = from_js;
+    while (*station != '\0') {
+        char* next = strchr(station, '|');
+        if (next != NULL) {
+            *next = '\0';
+        }
+
+        favorite_stations[curStationIdx] = malloc(sizeof(char) * 64);
+        strncpy(favorite_stations[curStationIdx], station, 64 - 1);
+        favorite_stations[curStationIdx][63] = '\0';
+
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Favorite station %zu: %s", curStationIdx, favorite_stations[curStationIdx]);
+        curStationIdx++;
+        if (next == NULL) {
+            break;
+        }
+        station = next + 1;
     }
-    curStationStr[charIdx] = from_js[i];
-    if (curStationIdx == MAX_FAVORITE_STATIONS) {
-      return;
-    }
-  }
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Setting number of favorite stations: %zu", curStationIdx);
+    favorite_stations_len = curStationIdx;
 }
 
 void process_tuple(Tuple* t) {
@@ -243,10 +250,10 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
     if (favorite_index != -1) {
       action = MESSAGE_KEY_RemoveFavorite;
       for (size_t j = favorite_index; j < favorite_stations_len - 1; ++j) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "%s = %s", favorite_stations[j], favorite_stations[j + 1]);
         strcpy(favorite_stations[j], favorite_stations[j + 1]);
       }
       free(favorite_stations[favorite_stations_len - 1]);
+      favorite_stations[favorite_stations_len - 1] = NULL;
       favorite_stations_len--;
     }
     else {
@@ -374,7 +381,7 @@ static void prv_deinit(void) {
   gbitmap_destroy(s_bitmap);
   gbitmap_destroy(black_heart_bitmap);
   gbitmap_destroy(white_heart_bitmap);
-  for (size_t i = 0; i < MAX_FAVORITE_STATIONS; ++i) {
+  for (size_t i = 0; i < favorite_stations_len; ++i) {
     free(favorite_stations[i]);
   }
   free(favorite_stations);

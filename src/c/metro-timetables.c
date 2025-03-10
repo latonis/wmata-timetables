@@ -28,7 +28,7 @@ static TextLayer* trains_title_layer;
 static char train_text[128];
 static char current_station[64];
 
-static GBitmap* s_bitmap;
+static GBitmap* logo_bitmap;
 static GBitmap* black_heart_bitmap;
 static GBitmap* white_heart_bitmap;
 static GBitmap* bus_bitmap;
@@ -227,11 +227,11 @@ static void outbox_failed_handler(DictionaryIterator* iter, AppMessageResult rea
 /* ===== */
 
 static void logo_update_proc(Layer* layer, GContext* ctx) {
-  GRect bitmap_bounds    = gbitmap_get_bounds(s_bitmap);
+  GRect bitmap_bounds    = gbitmap_get_bounds(logo_bitmap);
   bitmap_bounds.origin.x = (layer_get_frame(layer).size.w - bitmap_bounds.size.w - ACTION_BAR_WIDTH) / 2;
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
-  graphics_draw_bitmap_in_rect(ctx, s_bitmap, bitmap_bounds);
+  graphics_draw_bitmap_in_rect(ctx, logo_bitmap, bitmap_bounds);
 }
 
 static size_t get_len(char** arr) {
@@ -363,17 +363,16 @@ static void init_welcome_window() {
 }
 
 static void prv_init(void) {
-  bus_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BUS_ICON);
-  metro_bitmap = gbitmap_create_with_resource(RESOURCE_ID_METRO_ICON);
-  favorite_bitmap = gbitmap_create_with_resource(RESOURCE_ID_FAVORITE_ICON);
-
+  bus_bitmap         = gbitmap_create_with_resource(RESOURCE_ID_BUS_ICON);
+  metro_bitmap       = gbitmap_create_with_resource(RESOURCE_ID_METRO_ICON);
+  favorite_bitmap    = gbitmap_create_with_resource(RESOURCE_ID_FAVORITE_ICON);
+  logo_bitmap        = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LOGO);
+  black_heart_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BLACK_HEART_ICON);
+  white_heart_bitmap = gbitmap_create_with_resource(RESOURCE_ID_WHITE_HEART_ICON);
+  
   init_welcome_window();
   init_station_window();
   init_trains_window();
-
-  s_bitmap           = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LOGO);
-  black_heart_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BLACK_HEART_ICON);
-  white_heart_bitmap = gbitmap_create_with_resource(RESOURCE_ID_WHITE_HEART_ICON);
 
   favorite_stations = malloc(MAX_FAVORITE_STATIONS * sizeof(char*));
   app_message_register_inbox_received(inbox_received_handler);
@@ -398,7 +397,7 @@ static void prv_deinit(void) {
   }
   free(stations);
 
-  gbitmap_destroy(s_bitmap);
+  gbitmap_destroy(logo_bitmap);
   gbitmap_destroy(black_heart_bitmap);
   gbitmap_destroy(white_heart_bitmap);
   gbitmap_destroy(favorite_bitmap);

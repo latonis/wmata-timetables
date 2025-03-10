@@ -1,5 +1,4 @@
 var keys = require("message_keys");
-localStorage.clear();
 
 const stationMap = {
   "Metro Center": "A01",

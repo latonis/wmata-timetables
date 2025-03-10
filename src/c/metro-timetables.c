@@ -24,7 +24,7 @@ static Window* trains_window;
 static TextLayer* trains_text_layer;
 static TextLayer* trains_title_layer;
 
-static char train_text[64];
+static char train_text[128];
 static char current_station[64];
 
 static GBitmap* s_bitmap;

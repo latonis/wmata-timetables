@@ -100,6 +100,8 @@ const stationMap = {
   "Ashburn": "N12"
 };
 
+const MAX_CHARS_STATION_RESULT = 128;
+
 function sendNextItem(items, index, key) {
   // Build message
   var temp_key = key + index;
@@ -137,11 +139,12 @@ Pebble.addEventListener("ready", function () {
   Pebble.sendAppMessage({ JSReady: 1 });
 
   let favorite_stations = JSON.parse(localStorage.getItem("favorite_stations"));
-  let tmp_bytes = stringToBytes(favorite_stations.join("|"));
-  tmp_bytes.push(0)
   if (favorite_stations == null) {
     favorite_stations = [];
   }
+
+  let tmp_bytes = stringToBytes(favorite_stations.join("|"));
+  tmp_bytes.push(0)
 
   Pebble.sendAppMessage({ Favorites: tmp_bytes });
 
@@ -258,8 +261,7 @@ function nextTrain(station) {
 
       let trainString =
         train.Line + " " + train.DestinationName + " " + train.Min;
-
-      if (length + trainString.length > 63) {
+      if (length + trainString.length > MAX_CHARS_STATION_RESULT) {
         i = r.Trains.length;
       } else {
         trainResponse.push(trainString);

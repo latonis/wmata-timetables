@@ -113,9 +113,11 @@ static void init_trains_window() {
 }
 
 static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* cell_index, void* callback_context) {
-  char* station_name     = stations[cell_index->row];
+  char** section_arr     = cell_index == 0 ? favorite_stations : stations;
+  char* station_name     = section_arr[cell_index->row];
   int text_gap_size      = STATION_TEXT_GAP - strlen(station_name);
   GBitmap* favorite_icon = NULL;
+
   // Using simple space padding between name and station_text for appearance
   // of edge-alignment
   if (is_favorite_station(station_name) != -1) {
@@ -129,11 +131,15 @@ static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* 
   menu_cell_basic_draw(ctx, cell_layer, station_name, NULL, favorite_icon);
 }
 
-static uint16_t get_sections_count_callback(
-    struct MenuLayer* menulayer, uint16_t section_index, void* callback_context
-) {
-  int count = stations_len;
-  return count;
+static uint16_t get_row_count_callback(struct MenuLayer* menulayer, uint16_t section_index, void* callback_context) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "In get_row_count_callback");
+  if (section_index == 0) {
+    return favorite_stations_len;
+  }
+  else if (section_index == 1) {
+    return stations_len;
+  }
+  return 0;
 }
 
 static void populate_favorite_stations(char* from_js) {
@@ -248,6 +254,12 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
       }
       free(favorite_stations[favorite_stations_len - 1]);
       favorite_stations_len--;
+      if (cell_index->section == 0) {
+        MenuIndex new_index = *cell_index;
+        new_index.row       = cell_index->row == 0 ? cell_index->row + 1 : cell_index->row - 1;
+        // if we're in the favorites section, move up one selection if possible. else, move down one.
+        menu_layer_set_selected_index(menu_layer, new_index, MenuRowAlignCenter, true);
+      }
     }
     else {
       favorite_stations[favorite_stations_len] = malloc(sizeof(char) * 64);
@@ -270,9 +282,25 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
   }
 
   // rerendering the menu layer to show the change in favorite status
-  Layer* l = menu_layer_get_layer(menu_layer);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Marked the layer dirty");
-  layer_mark_dirty(l);
+  // Layer* l = menu_layer_get_layer(menu_layer);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Reloading data...");
+  menu_layer_reload_data(menu_layer);
+}
+
+static void draw_header_callback(
+    GContext* ctx, const Layer* cell_layer, uint16_t section_index, void* callback_context
+) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "In draw header callback");
+  const char* title = section_index == 0 ? "Favorite Stations" : "All Stations";
+  menu_cell_basic_header_draw(ctx, cell_layer, title);
+}
+
+static uint16_t get_num_station_sections(struct MenuLayer* menu_layer, void* callback_context) { return 2; }
+
+static int16_t get_header_height_callback(
+    struct MenuLayer* menu_layer, uint16_t section_index, void* callback_context
+) {
+  return 20;
 }
 
 static void station_window_load() {
@@ -282,10 +310,14 @@ static void station_window_load() {
 
   menu_layer_set_callbacks(
       station_menu_layer, NULL,
-      (MenuLayerCallbacks){.get_num_rows      = get_sections_count_callback,
+      (MenuLayerCallbacks){.get_num_rows      = get_row_count_callback,
                            .get_cell_height   = get_cell_height_callback,
+                           .get_num_sections  = get_num_station_sections,
                            .draw_row          = draw_row_handler,
-                           .select_click      = get_train_data,
+                           .draw_header       = draw_header_callback,
+                           .get_header_height = get_header_height_callback,
+                           // .select_click      = get_train_data,
+                           .select_click      = set_unset_favorite_station,
                            .select_long_click = set_unset_favorite_station}
   );
   menu_layer_set_click_config_onto_window(station_menu_layer, station_window);

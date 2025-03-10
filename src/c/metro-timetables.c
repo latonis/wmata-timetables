@@ -43,6 +43,16 @@ static int16_t get_cell_height_callback(MenuLayer* menu_layer, MenuIndex* cell_i
 }
 // #endif
 
+static int is_favorite_station(char* station) {
+    for (size_t i = 0; i < favorite_stations_len; ++i) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "%s = %s", station, favorite_stations[i]);
+        if (strcmp(station, favorite_stations[i]) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 /* ======================= Trains Window ================================= */
 static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "In select callback");
@@ -101,10 +111,12 @@ static void init_trains_window() {
 static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* cell_index, void* callback_context) {
   char* name        = stations[cell_index->row];
   int text_gap_size = STATION_TEXT_GAP - strlen(name);
-
   // Using simple space padding between name and station_text for appearance
   // of edge-alignment
   snprintf(station_text, sizeof(station_text), "%s", PBL_IF_ROUND_ELSE("", name));
+  if (is_favorite_station(name) != -1) {
+    strcat(station_text, " (F)");
+  }
   menu_cell_basic_draw(
       ctx, cell_layer, PBL_IF_ROUND_ELSE(name, station_text), PBL_IF_ROUND_ELSE(station_text, NULL), NULL
   );
@@ -212,16 +224,6 @@ static size_t get_len(char** arr) {
   return size;
 }
 
-static size_t is_favorite_station(char* station) {
-    for (size_t i = 0; i < favorite_stations_len; ++i) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "%s = %s", station, favorite_stations[i]);
-        if (strcmp(station, favorite_stations[i]) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "In set_unset_favorite_station");
   DictionaryIterator* out_iter;
@@ -255,6 +257,9 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
   else {
     APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
   }
+
+  Layer* l = menu_layer_get_layer(menu_layer);
+  layer_mark_dirty(l);
 }
 
 static void station_window_load() {

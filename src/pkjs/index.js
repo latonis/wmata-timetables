@@ -1,5 +1,7 @@
 var keys = require("message_keys");
 
+const api_key = "";
+
 const stationMap = {
   "Metro Center": "A01",
   "Farragut North": "A02",
@@ -184,59 +186,6 @@ Pebble.addEventListener("appmessage", function (e) {
     console.log(favorite_stations.join("|"))
   }
 });
-
-const api_key = "";
-
-function getRailLines() {
-  var method = "GET";
-  var url = "https://api.wmata.com/Rail.svc/json/jLines";
-  var request = new XMLHttpRequest();
-
-  request.onload = function () {
-    console.log("Response: ");
-    console.log(this.responseText);
-  };
-
-  request.open(method, url);
-  request.setRequestHeader("api_key", api_key);
-  request.send();
-}
-
-function getRailStations() {
-  var method = "GET";
-  var url = "https://api.wmata.com/Rail.svc/json/jStations";
-  var request = new XMLHttpRequest();
-
-  request.onload = function () {
-    console.log("Response: ");
-    let stations = JSON.parse(this.responseText);
-    stations = stations.Stations.map((station) => {
-      return [station.Code, station.Name];
-    });
-
-    localStorage.setItem("stations", JSON.stringify(stations));
-    return stations;
-  };
-
-  request.open(method, url);
-  request.setRequestHeader("api_key", api_key);
-  request.send();
-}
-
-function getRailTime(station) {
-  var method = "GET";
-  var url = "https://api.wmata.com/Rail.svc/json/jStationTimes";
-  var request = new XMLHttpRequest();
-  var params = "StationCode=" + station;
-  request.onload = function () {
-    console.log("Response: ");
-    console.log(this.responseText);
-  };
-
-  request.open(method, url + "?" + params);
-  request.setRequestHeader("api_key", api_key);
-  request.send();
-}
 
 function nextTrain(station) {
   var method = "GET";

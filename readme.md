@@ -10,23 +10,23 @@ Hello :) This is a hackathon project for the [rebble hackathon #002](https://reb
 ## Building the application
 
 ```bash
-rebble build
+pebble build
 ```
 
 ## Emulating the application
 
 ```bash
-rebble install --emulator aplite
+pebble install --emulator aplite
 ```
 
 ## Viewing logs
 
 ```bash
-rebble logs
+pebble logs
 ```
 
 ## Ensure JS works build command
 
 ```bash
-rebble wipe && rebble clean && rebble build && rebble install --emulator aplite --logs
+pebble wipe && pebble clean && pebble build && pebble install --emulator aplite --logs
 ```

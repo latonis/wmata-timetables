@@ -14,26 +14,29 @@
 /* ===== */
 
 /* Display artifacts */
-static Window* welcome_window;
-static TextLayer* welcome_text_layer;
+static Window *welcome_window;
+static TextLayer *welcome_text_layer;
 static char welcome_text[] = "WMATA Metro\nTimetables";
 
-static Window* station_window;
-static MenuLayer* station_menu_layer;
+static Window *station_window;
+static MenuLayer *station_menu_layer;
 
-static Window* trains_window;
-static TextLayer* trains_text_layer;
-static TextLayer* trains_title_layer;
+static Window *favorites_window;
+static MenuLayer *favorites_menu_layer;
+
+static Window *trains_window;
+static TextLayer *trains_text_layer;
+static TextLayer *trains_title_layer;
 
 static char train_text[128];
 static char current_station[64];
 
-static GBitmap* logo_bitmap;
-static GBitmap* black_heart_bitmap;
-static GBitmap* white_heart_bitmap;
-static GBitmap* bus_bitmap;
-static GBitmap* metro_bitmap;
-static GBitmap* favorite_bitmap;
+static GBitmap *logo_bitmap;
+static GBitmap *black_heart_bitmap;
+static GBitmap *white_heart_bitmap;
+static GBitmap *bus_bitmap;
+static GBitmap *metro_bitmap;
+static GBitmap *favorite_bitmap;
 
 ActionBarLayer *action_bar;
 
@@ -43,18 +46,20 @@ ActionBarLayer *action_bar;
 static bool s_js_ready;
 static char station_text[32];
 static size_t stations_len;
-static char** stations;
+static char **stations;
 static size_t favorite_stations_len = 0;
-static char** favorite_stations;
+static char **favorite_stations;
 /* ===== */
 
 // #ifdef PBL_ROUND
-static int16_t get_cell_height_callback(MenuLayer* menu_layer, MenuIndex* cell_index, void* callback_context) {
+static int16_t get_cell_height_callback(MenuLayer *menu_layer,
+                                        MenuIndex *cell_index,
+                                        void *callback_context) {
   return 60;
 }
 // #endif
 
-static int is_favorite_station(char* station) {
+static int is_favorite_station(char *station) {
   for (size_t i = 0; i < favorite_stations_len; ++i) {
     if (strcmp(station, favorite_stations[i]) == 0) {
       return i;
@@ -64,9 +69,10 @@ static int is_favorite_station(char* station) {
 }
 
 /* ======================= Trains Window ================================= */
-static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
+static void get_train_data(struct MenuLayer *menu_layer, MenuIndex *cell_index,
+                           void *context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "In select callback");
-  DictionaryIterator* out_iter;
+  DictionaryIterator *out_iter;
 
   AppMessageResult result = app_message_outbox_begin(&out_iter);
 
@@ -76,19 +82,20 @@ static void get_train_data(struct MenuLayer* menu_layer, MenuIndex* cell_index, 
     result = app_message_outbox_send();
 
     if (result != APP_MSG_OK) {
-      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox in get_train_data: %d", (int)result);
+      APP_LOG(APP_LOG_LEVEL_ERROR,
+              "Error sending the outbox in get_train_data: %d", (int)result);
     }
-  }
-  else {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
+  } else {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d",
+            (int)result);
   }
 }
 
 static void trains_window_load() {
-  Layer* window_layer = window_get_root_layer(trains_window);
-  GRect bounds        = layer_get_bounds(window_layer);
-  GRect title_bounds  = GRect(0, 0, bounds.size.w, bounds.size.h / 8);
-  GRect text_bounds   = GRect(0, bounds.size.h / 5, bounds.size.w, bounds.size.h);
+  Layer *window_layer = window_get_root_layer(trains_window);
+  GRect bounds = layer_get_bounds(window_layer);
+  GRect title_bounds = GRect(0, 0, bounds.size.w, bounds.size.h / 8);
+  GRect text_bounds = GRect(0, bounds.size.h / 5, bounds.size.w, bounds.size.h);
 
   trains_title_layer = text_layer_create(title_bounds);
   text_layer_set_text(trains_title_layer, current_station);
@@ -102,96 +109,96 @@ static void trains_window_load() {
   layer_add_child(window_layer, text_layer_get_layer(trains_text_layer));
 }
 
-static void trains_window_unload(Window* window) {
+static void trains_window_unload(Window *window) {
   text_layer_destroy(trains_text_layer);
   text_layer_destroy(trains_title_layer);
 }
 
 static void init_trains_window() {
   trains_window = window_create();
-  window_set_window_handlers(
-      trains_window,
-      (WindowHandlers){
-          .load   = trains_window_load,
-          .unload = trains_window_unload,
-      }
-  );
+  window_set_window_handlers(trains_window, (WindowHandlers){
+                                                .load = trains_window_load,
+                                                .unload = trains_window_unload,
+                                            });
 }
 
-static void draw_row_handler(GContext* ctx, const Layer* cell_layer, MenuIndex* cell_index, void* callback_context) {
-  char* station_name     = stations[cell_index->row];
-  int text_gap_size      = STATION_TEXT_GAP - strlen(station_name);
-  GBitmap* favorite_icon = NULL;
+static void draw_trains_row_handler(GContext *ctx, const Layer *cell_layer,
+                                    MenuIndex *cell_index,
+                                    void *callback_context) {
+  char *station_name = stations[cell_index->row];
+  int text_gap_size = STATION_TEXT_GAP - strlen(station_name);
+  GBitmap *favorite_icon = NULL;
   // Using simple space padding between name and station_text for appearance
   // of edge-alignment
   if (is_favorite_station(station_name) != -1) {
     if (menu_cell_layer_is_highlighted(cell_layer)) {
       favorite_icon = white_heart_bitmap;
-    }
-    else {
+    } else {
       favorite_icon = black_heart_bitmap;
     }
   }
   menu_cell_basic_draw(ctx, cell_layer, station_name, NULL, favorite_icon);
 }
 
-static uint16_t get_sections_count_callback(
-    struct MenuLayer* menulayer, uint16_t section_index, void* callback_context
-) {
+static uint16_t
+get_sections_count_stations_callback(struct MenuLayer *menulayer,
+                                     uint16_t section_index,
+                                     void *callback_context) {
   int count = stations_len;
   return count;
 }
 
-static void populate_favorite_stations(char* from_js) {
-    size_t curStationIdx = 0;
-    char* station = from_js;
-    while (*station != '\0') {
-        char* next = strchr(station, '|');
-        if (next != NULL) {
-            *next = '\0';
-        }
-
-        favorite_stations[curStationIdx] = calloc(64, sizeof(char));
-        strncpy(favorite_stations[curStationIdx], station, 64 - 1);
-        favorite_stations[curStationIdx][63] = '\0';
-
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Favorite station %zu: %s", curStationIdx, favorite_stations[curStationIdx]);
-        curStationIdx++;
-        if (next == NULL) {
-            break;
-        }
-        station = next + 1;
+static void populate_favorite_stations(char *from_js) {
+  size_t curStationIdx = 0;
+  char *station = from_js;
+  while (*station != '\0') {
+    char *next = strchr(station, '|');
+    if (next != NULL) {
+      *next = '\0';
     }
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Setting number of favorite stations: %zu", curStationIdx);
-    favorite_stations_len = curStationIdx;
+
+    favorite_stations[curStationIdx] = calloc(64, sizeof(char));
+    strncpy(favorite_stations[curStationIdx], station, 64 - 1);
+    favorite_stations[curStationIdx][63] = '\0';
+
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Favorite station %zu: %s", curStationIdx,
+            favorite_stations[curStationIdx]);
+    curStationIdx++;
+    if (next == NULL) {
+      break;
+    }
+    station = next + 1;
+  }
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Setting number of favorite stations: %zu",
+          curStationIdx);
+  favorite_stations_len = curStationIdx;
 }
 
-void process_tuple(Tuple* t) {
+void process_tuple(Tuple *t) {
   uint32_t key = t->key;
-  int value    = t->value->int32;
+  int value = t->value->int32;
   if (key == MESSAGE_KEY_JSReady) {
     s_js_ready = true;
-  }
-  else if (key == MESSAGE_KEY_StationsLen) {
+  } else if (key == MESSAGE_KEY_StationsLen) {
     stations_len = value;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received %d stations", (int)stations_len);
-    stations = malloc(stations_len * sizeof(char*));
-  }
-  else if (key >= MESSAGE_KEY_Stations && key <= (MESSAGE_KEY_Stations + (int)stations_len)) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received station %d: %s", (int)key, t->value->cstring);
-    stations[key - MESSAGE_KEY_Stations] = malloc(strlen(t->value->cstring) + 1);
+    stations = malloc(stations_len * sizeof(char *));
+  } else if (key >= MESSAGE_KEY_Stations &&
+             key <= (MESSAGE_KEY_Stations + (int)stations_len)) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received station %d: %s", (int)key,
+            t->value->cstring);
+    stations[key - MESSAGE_KEY_Stations] =
+        malloc(strlen(t->value->cstring) + 1);
     strcpy(stations[key - MESSAGE_KEY_Stations], t->value->cstring);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key, stations[key - MESSAGE_KEY_Stations]);
-  }
-  else if (key == MESSAGE_KEY_TrainResponse) {
-    strcpy(train_text, (char*)t->value->data);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored station %d: %s", (int)key,
+            stations[key - MESSAGE_KEY_Stations]);
+  } else if (key == MESSAGE_KEY_TrainResponse) {
+    strcpy(train_text, (char *)t->value->data);
     window_stack_push(trains_window, true);
-  }
-  else if (key == MESSAGE_KEY_Favorites) {
+  } else if (key == MESSAGE_KEY_Favorites) {
     APP_LOG(APP_LOG_LEVEL_ERROR, "Populating favorites");
-    populate_favorite_stations((char*)t->value->data);
-  }
-  else {
+    populate_favorite_stations((char *)t->value->data);
+  } else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Key %d not recognized!", (int)key);
   }
 
@@ -203,8 +210,8 @@ void process_tuple(Tuple* t) {
 }
 
 /* Message Handlers */
-static void inbox_received_handler(DictionaryIterator* iter, void* context) {
-  Tuple* t = dict_read_first(iter);
+static void inbox_received_handler(DictionaryIterator *iter, void *context) {
+  Tuple *t = dict_read_first(iter);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Inbox received handler: %d", (int)t->key);
 
   while (t != NULL) {
@@ -213,28 +220,31 @@ static void inbox_received_handler(DictionaryIterator* iter, void* context) {
   }
 }
 
-static void inbox_dropped_handler(AppMessageResult reason, void* context) {
+static void inbox_dropped_handler(AppMessageResult reason, void *context) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped. Reason: %d", (int)reason);
 }
 
-static void outbox_sent_handler(DictionaryIterator* iter, void* context) {
+static void outbox_sent_handler(DictionaryIterator *iter, void *context) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Message sent successfully.");
 }
 
-static void outbox_failed_handler(DictionaryIterator* iter, AppMessageResult reason, void* context) {
+static void outbox_failed_handler(DictionaryIterator *iter,
+                                  AppMessageResult reason, void *context) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Message send failed. Reason: %d", (int)reason);
 }
 /* ===== */
 
-static void logo_update_proc(Layer* layer, GContext* ctx) {
-  GRect bitmap_bounds    = gbitmap_get_bounds(logo_bitmap);
-  bitmap_bounds.origin.x = (layer_get_frame(layer).size.w - bitmap_bounds.size.w - ACTION_BAR_WIDTH) / 2;
+static void logo_update_proc(Layer *layer, GContext *ctx) {
+  GRect bitmap_bounds = gbitmap_get_bounds(logo_bitmap);
+  bitmap_bounds.origin.x = (layer_get_frame(layer).size.w -
+                            bitmap_bounds.size.w - ACTION_BAR_WIDTH) /
+                           2;
 
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
   graphics_draw_bitmap_in_rect(ctx, logo_bitmap, bitmap_bounds);
 }
 
-static size_t get_len(char** arr) {
+static size_t get_len(char **arr) {
   size_t size = 0;
   while (size < 5 && arr[size] != NULL) {
     size++;
@@ -242,15 +252,17 @@ static size_t get_len(char** arr) {
   return size;
 }
 
-static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* cell_index, void* context) {
+static void set_unset_favorite_station(struct MenuLayer *menu_layer,
+                                       MenuIndex *cell_index, void *context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "In set_unset_favorite_station");
-  DictionaryIterator* out_iter;
+  DictionaryIterator *out_iter;
   AppMessageResult result = app_message_outbox_begin(&out_iter);
   if (result == APP_MSG_OK) {
     uint32_t action = MESSAGE_KEY_AddFavorite;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "There are %zu favorite stations.", favorite_stations_len);
-    char* candidate_station = stations[cell_index->row];
-    int favorite_index      = is_favorite_station(candidate_station);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "There are %zu favorite stations.",
+            favorite_stations_len);
+    char *candidate_station = stations[cell_index->row];
+    int favorite_index = is_favorite_station(candidate_station);
     if (favorite_index != -1) {
       action = MESSAGE_KEY_RemoveFavorite;
       for (size_t j = favorite_index; j < favorite_stations_len - 1; ++j) {
@@ -259,77 +271,148 @@ static void set_unset_favorite_station(struct MenuLayer* menu_layer, MenuIndex* 
       free(favorite_stations[favorite_stations_len - 1]);
       favorite_stations[favorite_stations_len - 1] = NULL;
       favorite_stations_len--;
-    }
-    else {
+    } else {
       favorite_stations[favorite_stations_len] = malloc(sizeof(char) * 64);
       strcpy(favorite_stations[favorite_stations_len], candidate_station);
       favorite_stations_len++;
     }
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "There are now %zu favorite stations.", favorite_stations_len);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "There are now %zu favorite stations.",
+            favorite_stations_len);
     dict_write_cstring(out_iter, action, stations[cell_index->row]);
     result = app_message_outbox_send();
 
     if (result != APP_MSG_OK) {
-      APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox in set_unset_favorite_station: %d", (int)result);
+      APP_LOG(APP_LOG_LEVEL_ERROR,
+              "Error sending the outbox in set_unset_favorite_station: %d",
+              (int)result);
+    } else if (result == APP_MSG_OK) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG,
+              "Sent message to set/unset favorite station");
     }
-    else if (result == APP_MSG_OK) {
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent message to set/unset favorite station");
-    }
-  }
-  else {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d", (int)result);
+  } else {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Error initializing the message outbox: %d",
+            (int)result);
   }
 
   // rerendering the menu layer to show the change in favorite status
-  Layer* l = menu_layer_get_layer(menu_layer);
+  Layer *l = menu_layer_get_layer(menu_layer);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Marked the layer dirty");
   layer_mark_dirty(l);
 }
 
 static void station_window_load() {
-  Layer* window_layer = window_get_root_layer(station_window);
-  GRect bounds        = layer_get_bounds(window_layer);
-  station_menu_layer  = menu_layer_create(bounds);
+  Layer *window_layer = window_get_root_layer(station_window);
+  GRect bounds = layer_get_bounds(window_layer);
+  station_menu_layer = menu_layer_create(bounds);
 
   menu_layer_set_callbacks(
       station_menu_layer, NULL,
-      (MenuLayerCallbacks){.get_num_rows      = get_sections_count_callback,
-                           .get_cell_height   = get_cell_height_callback,
-                           .draw_row          = draw_row_handler,
-                           .select_click      = get_train_data,
-                           .select_long_click = set_unset_favorite_station}
-  );
+      (MenuLayerCallbacks){.get_num_rows = get_sections_count_stations_callback,
+                           .get_cell_height = get_cell_height_callback,
+                           .draw_row = draw_trains_row_handler,
+                           .select_click = get_train_data,
+                           .select_long_click = set_unset_favorite_station});
   menu_layer_set_click_config_onto_window(station_menu_layer, station_window);
   layer_add_child(window_layer, menu_layer_get_layer(station_menu_layer));
 }
 
-static void station_window_unload(Window* window) { menu_layer_destroy(station_menu_layer); }
+static void station_window_unload(Window *window) {
+  menu_layer_destroy(station_menu_layer);
+}
 
 static void init_station_window() {
   station_window = window_create();
-  window_set_window_handlers(
-      station_window,
-      (WindowHandlers){
-          .load   = station_window_load,
-          .unload = station_window_unload,
-      }
-  );
+  window_set_window_handlers(station_window,
+                             (WindowHandlers){
+                                 .load = station_window_load,
+                                 .unload = station_window_unload,
+                             });
+}
+
+/* ======================= Favorites Window ================================= */
+static uint16_t
+get_sections_count_favorites_callback(struct MenuLayer *menulayer,
+                                      uint16_t section_index,
+                                      void *callback_context) {
+  int count = favorite_stations_len;
+  return count;
+}
+
+static void draw_favorites_row_handler(GContext *ctx, const Layer *cell_layer,
+                                       MenuIndex *cell_index,
+                                       void *callback_context) {
+  char *station_name = favorite_stations[cell_index->row];
+  int text_gap_size = STATION_TEXT_GAP - strlen(station_name);
+  GBitmap *favorite_icon = NULL;
+  // Using simple space padding between name and station_text for appearance
+  // of edge-alignment
+  if (is_favorite_station(station_name) != -1) {
+    if (menu_cell_layer_is_highlighted(cell_layer)) {
+      favorite_icon = white_heart_bitmap;
+    } else {
+      favorite_icon = black_heart_bitmap;
+    }
+  }
+  menu_cell_basic_draw(ctx, cell_layer, station_name, NULL, favorite_icon);
+}
+
+static void favorites_window_load() {
+  Layer *window_layer = window_get_root_layer(favorites_window);
+  GRect bounds = layer_get_bounds(window_layer);
+  favorites_menu_layer = menu_layer_create(bounds);
+
+  menu_layer_set_callbacks(
+      favorites_menu_layer, NULL,
+      (MenuLayerCallbacks){
+          .get_num_rows = get_sections_count_favorites_callback,
+          .get_cell_height = get_cell_height_callback,
+          .draw_row = draw_favorites_row_handler,
+          .select_click = get_train_data,
+      });
+  menu_layer_set_click_config_onto_window(favorites_menu_layer,
+                                          favorites_window);
+  layer_add_child(window_layer, menu_layer_get_layer(favorites_menu_layer));
+}
+
+static void favorites_window_unload(Window *window) {
+  menu_layer_destroy(station_menu_layer);
+}
+
+static void init_favorites_window() {
+  favorites_window = window_create();
+  window_set_window_handlers(favorites_window,
+                             (WindowHandlers){
+                                 .load = favorites_window_load,
+                                 .unload = favorites_window_unload,
+                             });
 }
 
 /* ======================= Welcome Window ================================= */
-static void welcome_window_unload(Window* window) { text_layer_destroy(welcome_text_layer); }
+static void welcome_window_unload(Window *window) {
+  text_layer_destroy(welcome_text_layer);
+}
 
-static void welcome_select_click_handler(ClickRecognizerRef recognizer, void* context) {
+static void welcome_select_trains_click_handler(ClickRecognizerRef recognizer,
+                                                void *context) {
   window_stack_push(station_window, true);
 }
 
-static void welcome_window_config_provider(void* context) {
-  window_single_click_subscribe(BUTTON_ID_UP, welcome_select_click_handler);
+static void
+welcome_select_favorites_click_handler(ClickRecognizerRef recognizer,
+                                       void *context) {
+  window_stack_push(favorites_window, true);
+}
+
+static void welcome_window_config_provider(void *context) {
+  window_single_click_subscribe(BUTTON_ID_UP,
+                                welcome_select_trains_click_handler);
+  window_single_click_subscribe(BUTTON_ID_SELECT,
+                                welcome_select_favorites_click_handler);
 }
 
 static void welcome_window_load() {
-  Layer* window_layer = window_get_root_layer(welcome_window);
-  GRect bounds        = layer_get_bounds(window_layer);
+  Layer *window_layer = window_get_root_layer(welcome_window);
+  GRect bounds = layer_get_bounds(window_layer);
   action_bar = action_bar_layer_create();
 
   action_bar_layer_set_background_color(action_bar, GColorDarkGray);
@@ -337,10 +420,12 @@ static void welcome_window_load() {
   action_bar_layer_set_icon(action_bar, BUTTON_ID_UP, metro_bitmap);
   action_bar_layer_set_icon(action_bar, BUTTON_ID_SELECT, favorite_bitmap);
   action_bar_layer_add_to_window(action_bar, welcome_window);
-  action_bar_layer_set_click_config_provider(action_bar, welcome_window_config_provider);
+  action_bar_layer_set_click_config_provider(action_bar,
+                                             welcome_window_config_provider);
 
-  welcome_text_layer =
-      text_layer_create(GRect(0, bounds.size.h - (bounds.size.h / 4) - 4, bounds.size.w-ACTION_BAR_WIDTH, bounds.size.h / 6));
+  welcome_text_layer = text_layer_create(
+      GRect(0, bounds.size.h - (bounds.size.h / 4) - 4,
+            bounds.size.w - ACTION_BAR_WIDTH, bounds.size.h / 6));
   text_layer_set_text(welcome_text_layer, welcome_text);
   text_layer_set_background_color(welcome_text_layer, GColorClear);
   text_layer_set_text_alignment(welcome_text_layer, GTextAlignmentCenter);
@@ -351,30 +436,32 @@ static void welcome_window_load() {
 
 static void init_welcome_window() {
   welcome_window = window_create();
-  window_set_click_config_provider(welcome_window, welcome_window_config_provider);
-  window_set_window_handlers(
-      welcome_window,
-      (WindowHandlers){
-          .load   = welcome_window_load,
-          .unload = welcome_window_unload,
-      }
-  );
+  window_set_click_config_provider(welcome_window,
+                                   welcome_window_config_provider);
+  window_set_window_handlers(welcome_window,
+                             (WindowHandlers){
+                                 .load = welcome_window_load,
+                                 .unload = welcome_window_unload,
+                             });
   window_stack_push(welcome_window, true);
 }
 
 static void prv_init(void) {
-  bus_bitmap         = gbitmap_create_with_resource(RESOURCE_ID_BUS_ICON);
-  metro_bitmap       = gbitmap_create_with_resource(RESOURCE_ID_METRO_ICON);
-  favorite_bitmap    = gbitmap_create_with_resource(RESOURCE_ID_FAVORITE_ICON);
-  logo_bitmap        = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LOGO);
-  black_heart_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BLACK_HEART_ICON);
-  white_heart_bitmap = gbitmap_create_with_resource(RESOURCE_ID_WHITE_HEART_ICON);
-  
+  bus_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BUS_ICON);
+  metro_bitmap = gbitmap_create_with_resource(RESOURCE_ID_METRO_ICON);
+  favorite_bitmap = gbitmap_create_with_resource(RESOURCE_ID_FAVORITE_ICON);
+  logo_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LOGO);
+  black_heart_bitmap =
+      gbitmap_create_with_resource(RESOURCE_ID_BLACK_HEART_ICON);
+  white_heart_bitmap =
+      gbitmap_create_with_resource(RESOURCE_ID_WHITE_HEART_ICON);
+
   init_welcome_window();
   init_station_window();
   init_trains_window();
+  init_favorites_window();
 
-  favorite_stations = malloc(MAX_FAVORITE_STATIONS * sizeof(char*));
+  favorite_stations = malloc(MAX_FAVORITE_STATIONS * sizeof(char *));
   app_message_register_inbox_received(inbox_received_handler);
   app_message_register_inbox_dropped(inbox_dropped_handler);
   app_message_register_outbox_sent(outbox_sent_handler);
@@ -385,9 +472,10 @@ static void prv_init(void) {
 static void prv_deinit(void) {
   window_destroy(trains_window);
   window_destroy(station_window);
+  window_destroy(favorites_window);
   window_destroy(welcome_window);
 
-  for (size_t i = 0; i < favorite_stations_len; ++i) {
+  for (size_t i = 0; i < MAX_FAVORITE_STATIONS; i++) {
     free(favorite_stations[i]);
   }
   free(favorite_stations);

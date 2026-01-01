@@ -195,7 +195,7 @@ function nextTrain(station) {
   request.onload = function () {
     console.log("Response: ");
     let r = JSON.parse(this.responseText);
-    console.log(this.responseText);
+
     let trainResponse = [];
     let length = 0;
     for (let i = 0; i < r.Trains.length; i++) {

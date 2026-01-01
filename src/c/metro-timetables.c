@@ -475,7 +475,7 @@ static void prv_deinit(void) {
   window_destroy(favorites_window);
   window_destroy(welcome_window);
 
-  for (size_t i = 0; i < favorite_stations_len; ++i) {
+  for (size_t i = 0; i < MAX_FAVORITE_STATIONS; i++) {
     free(favorite_stations[i]);
   }
   free(favorite_stations);

@@ -18,6 +18,10 @@ static Window *welcome_window;
 static TextLayer *welcome_text_layer;
 static char welcome_text[] = "WMATA Metro\nTimetables";
 
+static Window *comingsoon_window;
+static TextLayer *comingsoon_text_layer;
+static char comingsoon_text[] = "Bus Routes coming soon! :)";
+
 static Window *station_window;
 static MenuLayer *station_menu_layer;
 
@@ -387,6 +391,37 @@ static void init_favorites_window() {
                              });
 }
 
+/* ======================= Coming Soon Window ================================= */
+static void comingsoon_window_load() {
+  Layer *window_layer = window_get_root_layer(comingsoon_window);
+  GRect bounds = layer_get_bounds(window_layer);
+  // GRect title_bounds = GRect(0, 0, bounds.size.w, bounds.size.h / 8);
+  GRect text_bounds = GRect(0, bounds.size.h / 5, bounds.size.w, bounds.size.h);
+
+  // trains_title_layer = text_layer_create(title_bounds);
+  // text_layer_set_text(trains_title_layer, current_station);
+  // text_layer_set_background_color(trains_title_layer, GColorBlack);
+  // text_layer_set_text_color(trains_title_layer, GColorWhite);
+  // text_layer_set_text_alignment(trains_title_layer, GTextAlignmentCenter);
+  // layer_add_child(window_layer, text_layer_get_layer(trains_title_layer));
+
+  comingsoon_text_layer = text_layer_create(text_bounds);
+  text_layer_set_text(comingsoon_text_layer, comingsoon_text);
+  layer_add_child(window_layer, text_layer_get_layer(comingsoon_text_layer));
+}
+
+static void comingsoon_window_unload(Window *window) {
+  text_layer_destroy(comingsoon_text_layer);
+}
+
+static void init_comingsoon_window() {
+  comingsoon_window = window_create();
+  window_set_window_handlers(comingsoon_window, (WindowHandlers){
+                                                .load = comingsoon_window_load,
+                                                .unload = comingsoon_window_unload
+                                            });
+}
+
 /* ======================= Welcome Window ================================= */
 static void welcome_window_unload(Window *window) {
   text_layer_destroy(welcome_text_layer);
@@ -403,11 +438,17 @@ welcome_select_favorites_click_handler(ClickRecognizerRef recognizer,
   window_stack_push(favorites_window, true);
 }
 
+static void welcome_select_comingsoon_click_handler(ClickRecognizerRef recognizer,
+                                       void *context) {
+                                            window_stack_push(comingsoon_window, true);
+                                       }
+
 static void welcome_window_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_UP,
                                 welcome_select_trains_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT,
                                 welcome_select_favorites_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, welcome_select_comingsoon_click_handler);
 }
 
 static void welcome_window_load() {
@@ -457,6 +498,7 @@ static void prv_init(void) {
       gbitmap_create_with_resource(RESOURCE_ID_WHITE_HEART_ICON);
 
   init_welcome_window();
+  init_comingsoon_window();
   init_station_window();
   init_trains_window();
   init_favorites_window();
@@ -474,6 +516,7 @@ static void prv_deinit(void) {
   window_destroy(station_window);
   window_destroy(favorites_window);
   window_destroy(welcome_window);
+  window_destroy(comingsoon_window);
 
   for (size_t i = 0; i < MAX_FAVORITE_STATIONS; i++) {
     free(favorite_stations[i]);
